@@ -1,11 +1,19 @@
+import React, { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
-import Home from "./pages/Home/Home"
+import Home from "./pages/Home/Home";
+import Produtos from "./pages/Produtos/Produtos";
 
 export default function App() {
+  const [currentPage, setCurrentPage] = useState<string>("Home");
+
   return (
     <View style={styles.container}>
-      <Home />
+      {currentPage === "Home" ? (
+        <Home onNavigate={(page) => setCurrentPage(page)} />
+      ) : (
+        <Produtos onBack={() => setCurrentPage("Home")} />
+      )}
     </View>
   );
 }

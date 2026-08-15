@@ -15,7 +15,11 @@ import styles from "./HomeStyles";
 import AppBar from "../../components/AppBar/AppBar";
 import colors from "../../constants/colors";
 
-export default function Home() {
+interface HomeProps {
+  onNavigate?: (page: string) => void;
+}
+
+export default function Home({ onNavigate }: HomeProps) {
   const [activeTab, setActiveTab] = useState("inicio");
 
   // Load fonts
@@ -235,7 +239,15 @@ export default function Home() {
           {quickAccessItems.map((item) => {
             const colorsSet = (colors.quickAccess as any)[item.colorKey];
             return (
-              <TouchableOpacity key={item.id} style={styles.quickAccessItem}>
+              <TouchableOpacity 
+                key={item.id} 
+                style={styles.quickAccessItem}
+                onPress={() => {
+                  if (item.title.includes("PRODUTOS") && onNavigate) {
+                    onNavigate("Produtos");
+                  }
+                }}
+              >
                 <View
                   style={[
                     styles.quickAccessIconContainer,

@@ -348,12 +348,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 65,
-    backgroundColor: colors.tabBar.bg,
+    backgroundColor: colors.cardBackground,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: "#1e293b",
+    borderTopColor: "#b6babfff",
     paddingBottom: Platform.OS === "ios" ? 15 : 5,
   },
   tabItem: {
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   tabIconWrapperActive: {
-    backgroundColor: colors.tabBar.activeBg,
+    backgroundColor: "#ffffff"
   },
   tabLabel: {
     fontSize: 8,
