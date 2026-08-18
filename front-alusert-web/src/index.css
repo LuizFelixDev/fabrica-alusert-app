@@ -1,0 +1,96 @@
+:root {
+  --primary: #f18e04;
+  --primary-dark: #d97706;
+  --background: #f4f6f9;
+  --card-background: #ffffff;
+  --text-primary: #0a0a0a;
+  --text-secondary: #8a99ad;
+  --border: #e2e8f0;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --error: #b91c1c;
+  --error-bg: #fee2e2;
+  --tab-inactive: #64748b;
+  --tab-active: #f18e04;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #e2e8f0;
+  color: var(--text-primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Mobile-first wrapper simulator for desktop */
+.app-container {
+  width: 100%;
+  max-width: 480px;
+  height: 100vh;
+  background-color: var(--background);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    max-width: 100%;
+    height: 100vh;
+    box-shadow: none;
+  }
+}
+
+/* Scrollable page content */
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 80px; /* Space for bottom tab-bar */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars for app-like feeling */
+.page-content::-webkit-scrollbar {
+  display: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+}
+
+button {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  background: none;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+input, textarea, select {
+  font-family: 'Poppins', sans-serif;
+  outline: none;
+}
