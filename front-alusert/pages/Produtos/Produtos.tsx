@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Switch,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useFonts, Montserrat_700Bold, Montserrat_600SemiBold, Montserrat_400Regular } from "@expo-google-fonts/montserrat";
@@ -74,6 +75,9 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
 
   // Modal State
   const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
+  const [selectedProduct, setSelectedProduct] = useState<BackendProduct | null>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const [formNome, setFormNome] = useState("");
   const [formCategoria, setFormCategoria] = useState("");
   const [formEstoque, setFormEstoque] = useState("");
@@ -142,7 +146,7 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
     fetchProducts();
   }, []);
 
-  // Form submission handler
+  // Form submission handler (Create or Edit)
   const handleCreateProduct = async () => {
     if (!formNome.trim()) {
       setFormError("O nome do produto é obrigatório.");
@@ -183,8 +187,13 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
           }))
       };
 
-      const response = await fetch(ENDPOINTS.produtos, {
-        method: "POST",
+      const url = isEditing && selectedProduct
+        ? `${ENDPOINTS.produtos}/${selectedProduct.id}`
+        : ENDPOINTS.produtos;
+      const method = isEditing ? "PUT" : "POST";
+
+      const response = await fetch(url, {
+        method: method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -210,6 +219,8 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
       setFormPesoKg("");
       setFormStatus(true);
       setFormDiscos([]);
+      setIsEditing(false);
+      setSelectedProduct(null);
       setModalVisible(false);
       
       // Reload products list
@@ -220,6 +231,84 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // Delete product handler
+  const handleDeleteProduct = async () => {
+    if (!selectedProduct) return;
+
+    Alert.alert(
+      "Confirmar Exclusão",
+      `Tem certeza que deseja excluir o produto "${selectedProduct.nome}"?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+              const response = await fetch(`${ENDPOINTS.produtos}/${selectedProduct.id}`, {
+                method: "DELETE",
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+              }
+
+              setDetailsModalVisible(false);
+              setSelectedProduct(null);
+              fetchProducts();
+              Alert.alert("Sucesso", "Produto excluído com sucesso.");
+            } catch (err: any) {
+              console.error("Erro ao excluir produto:", err);
+              Alert.alert("Erro", err.message || "Ocorreu um erro ao excluir o produto.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Prepare edit form handler
+  const handleEditPress = () => {
+    if (!selectedProduct) return;
+
+    // Close details modal
+    setDetailsModalVisible(false);
+
+    // Pre-populate fields
+    setFormNome(selectedProduct.nome || "");
+    setFormCodigoBarras(selectedProduct.codigo_barras || "");
+    setFormDescricao(selectedProduct.descricao || "");
+    setFormCategoria(selectedProduct.categoria || "");
+    setFormUnidade(selectedProduct.unidade_medida || "kg");
+    setFormTamanhoNumero(selectedProduct.tamanho_numero !== null ? String(selectedProduct.tamanho_numero) : "");
+    setFormPesoKg(selectedProduct.peso_kg !== null ? String(selectedProduct.peso_kg) : "");
+    setFormEstoque(String(selectedProduct.quantidade_estoque));
+    setFormEstoqueMinimo(String(selectedProduct.estoque_minimo));
+    setFormPrecoCusto(selectedProduct.preco_custo !== null ? String(selectedProduct.preco_custo) : "");
+    setFormPrecoVenda(selectedProduct.preco_venda !== null ? String(selectedProduct.preco_venda) : "");
+    setFormStatus(selectedProduct.status);
+
+    if (selectedProduct.especificacoes && selectedProduct.especificacoes.length > 0) {
+      setFormDiscos(
+        selectedProduct.especificacoes.map(d => ({
+          tipo_componente: d.tipo_componente || "",
+          diametro_mm: String(d.diametro_mm),
+          altura_mm: String(d.altura_mm)
+        }))
+      );
+    } else {
+      setFormDiscos([]);
+    }
+
+    setIsEditing(true);
+    setFormError(null);
+    setModalVisible(true);
   };
 
   // Helper function to format price values
@@ -366,12 +455,17 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                 const tagColors = getTagStyle(product.categoria);
 
                 return (
-                  <View
+                  <TouchableOpacity
                     key={product.id}
                     style={[
                       styles.productItem,
                       !isLast && styles.productItemDivider
                     ]}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedProduct(product);
+                      setDetailsModalVisible(true);
+                    }}
                   >
                     {/* Left detailed section */}
                     <View style={styles.productDetails}>
@@ -424,7 +518,7 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                         /{product.unidade_medida || "kg"}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -432,19 +526,194 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
         </ScrollView>
       )}
 
+      {/* Product Details Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={detailsModalVisible}
+        onRequestClose={() => {
+          setDetailsModalVisible(false);
+          setSelectedProduct(null);
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.detailsModalContent}>
+            {selectedProduct && (
+              <>
+                {/* Header */}
+                <View style={styles.detailsHeader}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.detailsTitle}>{selectedProduct.nome}</Text>
+                    <View style={[styles.tag, { backgroundColor: getTagStyle(selectedProduct.categoria).bg, marginTop: 4 }]}>
+                      <Text style={[styles.tagText, { color: getTagStyle(selectedProduct.categoria).text }]}>
+                        {selectedProduct.categoria || "PRODUTO"}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.closeDetailsButton}
+                    onPress={() => {
+                      setDetailsModalVisible(false);
+                      setSelectedProduct(null);
+                    }}
+                  >
+                    <Feather name="x" size={20} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Body (Scrollable) */}
+                <ScrollView showsVerticalScrollIndicator={false} style={styles.detailsBody}>
+                  {/* Descrição */}
+                  {selectedProduct.descricao && (
+                    <View style={styles.detailsSection}>
+                      <Text style={styles.detailsSectionLabel}>DESCRIÇÃO</Text>
+                      <Text style={styles.detailsDescText}>{selectedProduct.descricao}</Text>
+                    </View>
+                  )}
+
+                  {/* Informações Gerais */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionLabel}>INFORMAÇÕES DE ESTOQUE</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Estoque Atual</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {selectedProduct.quantidade_estoque} {selectedProduct.unidade_medida || "kg"}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Estoque Mínimo</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {selectedProduct.estoque_minimo} {selectedProduct.unidade_medida || "kg"}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Status</Text>
+                        <Text
+                          style={[
+                            styles.detailsItemValue,
+                            { color: selectedProduct.status ? colors.success.text : colors.error.text }
+                          ]}
+                        >
+                          {selectedProduct.status ? "Ativo" : "Inativo"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Valores financeiro */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionLabel}>VALORES</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Preço de Custo</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {formatPrice(selectedProduct.preco_custo)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Preço de Venda</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {formatPrice(selectedProduct.preco_venda)}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Margem</Text>
+                        <Text style={[styles.detailsItemValue, { color: colors.success.text }]}>
+                          {calculateMargin(selectedProduct.preco_custo, selectedProduct.preco_venda)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Especificações */}
+                  <View style={styles.detailsSection}>
+                    <Text style={styles.detailsSectionLabel}>ESPECIFICAÇÕES DO PRODUTO</Text>
+                    <View style={styles.detailsGrid}>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Tamanho / Número</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {selectedProduct.tamanho_numero !== null ? Number(selectedProduct.tamanho_numero) : "N/A"}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Peso (KG)</Text>
+                        <Text style={styles.detailsItemValue}>
+                          {selectedProduct.peso_kg !== null ? `${Number(selectedProduct.peso_kg)} kg` : "N/A"}
+                        </Text>
+                      </View>
+                      <View style={styles.detailsGridItem}>
+                        <Text style={styles.detailsItemLabel}>Código de Barras</Text>
+                        <Text style={styles.detailsItemValue} numberOfLines={1} ellipsizeMode="tail">
+                          {selectedProduct.codigo_barras || "N/A"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Especificações de Discos */}
+                  {selectedProduct.especificacoes && selectedProduct.especificacoes.length > 0 && (
+                    <View style={styles.detailsSection}>
+                      <Text style={styles.detailsSectionLabel}>ESPECIFICAÇÕES DE DISCOS</Text>
+                      <View style={styles.detailsDiscsList}>
+                        {selectedProduct.especificacoes.map((spec, specIdx) => (
+                          <View key={spec.id || specIdx} style={styles.detailsDiscItem}>
+                            <Feather name="disc" size={14} color={colors.primary} style={{ marginRight: 8 }} />
+                            <Text style={styles.detailsDiscItemText}>
+                              <Text style={{ fontFamily: "Poppins_600SemiBold", color: colors.textPrimary }}>{spec.tipo_componente}</Text>
+                              : Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+                </ScrollView>
+
+                {/* Footer Buttons */}
+                <View style={styles.detailsFooter}>
+                  <TouchableOpacity
+                    style={styles.detailsDeleteButton}
+                    onPress={handleDeleteProduct}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="trash-2" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.detailsDeleteButtonText}>EXCLUIR</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.detailsEditButton}
+                    onPress={handleEditPress}
+                    activeOpacity={0.8}
+                  >
+                    <Feather name="edit" size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={styles.detailsEditButtonText}>ALTERAR</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
       {/* Creation Modal Form */}
       <Modal
         animationType="fade"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setFormDiscos([]);
+          setIsEditing(false);
+          setSelectedProduct(null);
+        }}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalContainer}
         >
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Novo Produto</Text>
+            <Text style={styles.modalTitle}>{isEditing ? "Editar Produto" : "Novo Produto"}</Text>
             
             <ScrollView showsVerticalScrollIndicator={false} style={styles.formScroll}>
               <Text style={styles.inputLabel}>NOME DO PRODUTO *</Text>
@@ -666,6 +935,8 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                 onPress={() => {
                   setModalVisible(false);
                   setFormDiscos([]);
+                  setIsEditing(false);
+                  setSelectedProduct(null);
                 }}
                 disabled={submitting}
               >
@@ -680,7 +951,7 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                 {submitting ? (
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Text style={styles.submitButtonText}>CADASTRAR</Text>
+                  <Text style={styles.submitButtonText}>{isEditing ? "SALVAR" : "CADASTRAR"}</Text>
                 )}
               </TouchableOpacity>
             </View>
