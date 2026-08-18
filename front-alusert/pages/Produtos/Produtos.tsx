@@ -21,6 +21,14 @@ import styles from "./ProdutosStyles";
 import colors from "../../constants/colors";
 import { ENDPOINTS } from "../../constants/api";
 
+interface ProductSpecification {
+  id?: number;
+  produto_id?: number;
+  tipo_componente: string;
+  diametro_mm: number | string;
+  altura_mm: number | string;
+}
+
 // Backend Product Interface
 interface BackendProduct {
   id: number;
@@ -38,6 +46,7 @@ interface BackendProduct {
   status: boolean;
   data_cadastro?: string;
   data_atualizacao?: string;
+  especificacoes?: ProductSpecification[];
 }
 
 interface ProdutosProps {
@@ -77,6 +86,11 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
   const [formEstoqueMinimo, setFormEstoqueMinimo] = useState("");
   const [formPesoKg, setFormPesoKg] = useState("");
   const [formStatus, setFormStatus] = useState<boolean>(true);
+  const [formDiscos, setFormDiscos] = useState<{
+    tipo_componente: string;
+    diametro_mm: string;
+    altura_mm: string;
+  }[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -160,6 +174,13 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
         estoque_minimo: formEstoqueMinimo ? parseInt(formEstoqueMinimo, 10) : 0,
         peso_kg: formPesoKg ? parseFloat(formPesoKg) : null,
         status: formStatus,
+        especificacoes: formDiscos
+          .filter(d => d.tipo_componente.trim() !== "" || d.diametro_mm.trim() !== "" || d.altura_mm.trim() !== "")
+          .map(d => ({
+            tipo_componente: d.tipo_componente.trim() || "Disco",
+            diametro_mm: d.diametro_mm ? parseFloat(d.diametro_mm) : 0,
+            altura_mm: d.altura_mm ? parseFloat(d.altura_mm) : 0
+          }))
       };
 
       const response = await fetch(ENDPOINTS.produtos, {
@@ -188,6 +209,7 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
       setFormEstoqueMinimo("");
       setFormPesoKg("");
       setFormStatus(true);
+      setFormDiscos([]);
       setModalVisible(false);
       
       // Reload products list
@@ -261,6 +283,7 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
           activeOpacity={0.8}
           onPress={() => {
             setFormError(null);
+            setFormDiscos([]);
             setModalVisible(true);
           }}
         >
@@ -376,6 +399,20 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                           </Text>
                         </Text>
                       </View>
+
+                      {/* Product Specifications Badges */}
+                      {product.especificacoes && product.especificacoes.length > 0 && (
+                        <View style={styles.specsContainer}>
+                          {product.especificacoes.map((spec, specIdx) => (
+                            <View key={spec.id || specIdx} style={styles.specBadge}>
+                              <Feather name="disc" size={10} color="#475569" style={{ marginRight: 4 }} />
+                              <Text style={styles.specBadgeText}>
+                                {spec.tipo_componente}: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
 
                     {/* Right pricing section */}
@@ -547,6 +584,77 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                 />
               </View>
 
+              {/* Seção de Especificações de Discos */}
+              <View style={styles.discSectionHeader}>
+                <Text style={styles.discSectionTitle}>ESPECIFICAÇÕES DE DISCO</Text>
+                <TouchableOpacity
+                  style={styles.addDiscButtonInline}
+                  onPress={() => setFormDiscos([...formDiscos, { tipo_componente: "", diametro_mm: "", altura_mm: "" }])}
+                >
+                  <Feather name="plus-circle" size={14} color={colors.primary} />
+                  <Text style={styles.addDiscButtonInlineText}>Adicionar Disco</Text>
+                </TouchableOpacity>
+              </View>
+
+              {formDiscos.map((disco, idx) => (
+                <View key={idx} style={styles.discItemContainer}>
+                  <View style={styles.discItemHeader}>
+                    <Text style={styles.discItemNumber}>Disco #{idx + 1}</Text>
+                    <TouchableOpacity
+                      onPress={() => setFormDiscos(formDiscos.filter((_, i) => i !== idx))}
+                    >
+                      <Feather name="trash-2" size={16} color={colors.error.text} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.inputLabel}>TIPO DE COMPONENTE</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Ex: disco maior, disco menor"
+                    placeholderTextColor={colors.textSecondary}
+                    value={disco.tipo_componente}
+                    onChangeText={(val) => {
+                      const updated = [...formDiscos];
+                      updated[idx].tipo_componente = val;
+                      setFormDiscos(updated);
+                    }}
+                  />
+
+                  <View style={styles.row}>
+                    <View style={styles.halfInputContainer}>
+                      <Text style={styles.inputLabel}>DIÂMETRO (MM)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ex: 260.00"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="numeric"
+                        value={disco.diametro_mm}
+                        onChangeText={(val) => {
+                          const updated = [...formDiscos];
+                          updated[idx].diametro_mm = val;
+                          setFormDiscos(updated);
+                        }}
+                      />
+                    </View>
+                    <View style={styles.halfInputContainer}>
+                      <Text style={styles.inputLabel}>ALTURA (MM)</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="Ex: 90.00"
+                        placeholderTextColor={colors.textSecondary}
+                        keyboardType="numeric"
+                        value={disco.altura_mm}
+                        onChangeText={(val) => {
+                          const updated = [...formDiscos];
+                          updated[idx].altura_mm = val;
+                          setFormDiscos(updated);
+                        }}
+                      />
+                    </View>
+                  </View>
+                </View>
+              ))}
+
               {formError && (
                 <Text style={styles.formErrorText}>{formError}</Text>
               )}
@@ -555,7 +663,10 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
             <View style={styles.buttonRow}>
               <TouchableOpacity 
                 style={styles.cancelButton} 
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setModalVisible(false);
+                  setFormDiscos([]);
+                }}
                 disabled={submitting}
               >
                 <Text style={styles.cancelButtonText}>CANCELAR</Text>

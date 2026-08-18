@@ -383,6 +383,70 @@ const styles = StyleSheet.create({
     fontFamily: "Montserrat_700Bold",
     fontSize: 12,
   },
+  specsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 8,
+    gap: 6,
+  },
+  specBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  specBadgeText: {
+    fontSize: 9,
+    fontFamily: "Poppins_600SemiBold",
+    color: "#475569",
+  },
+  discSectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#e2e8f0",
+    paddingTop: 16,
+  },
+  discSectionTitle: {
+    fontSize: 11,
+    fontFamily: "Montserrat_700Bold",
+    color: colors.textPrimary,
+    letterSpacing: 0.5,
+  },
+  addDiscButtonInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  addDiscButtonInlineText: {
+    fontSize: 11,
+    fontFamily: "Montserrat_700Bold",
+    color: colors.primary,
+  },
+  discItemContainer: {
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+  },
+  discItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  discItemNumber: {
+    fontSize: 10,
+    fontFamily: "Poppins_600SemiBold",
+    color: colors.textSecondary,
+  },
 });
 
 export default styles;
