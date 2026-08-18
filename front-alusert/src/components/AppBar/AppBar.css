@@ -4,10 +4,12 @@
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: start;
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
   flex-shrink: 0;
+  padding-top: 8px;
+  margin-left: -60px;
 }
 
 .header-content {
@@ -18,7 +20,7 @@
 }
 
 .app-logo {
-  height: 36px;
+  height: 250px;
   object-fit: contain;
 }
 
@@ -28,6 +30,7 @@
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   letter-spacing: -0.5px;
+  margin-left: -60px;
 }
 
 .title-orange {
