@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   detailsBody: {
-    flex: 1,
+    maxHeight: 420,
   },
   detailsSection: {
     marginBottom: 18,

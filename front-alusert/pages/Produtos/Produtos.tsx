@@ -642,12 +642,6 @@ export default function Produtos({ onBack, onNavigate }: ProdutosProps) {
                           {selectedProduct.peso_kg !== null ? `${Number(selectedProduct.peso_kg)} kg` : "N/A"}
                         </Text>
                       </View>
-                      <View style={styles.detailsGridItem}>
-                        <Text style={styles.detailsItemLabel}>Código de Barras</Text>
-                        <Text style={styles.detailsItemValue} numberOfLines={1} ellipsizeMode="tail">
-                          {selectedProduct.codigo_barras || "N/A"}
-                        </Text>
-                      </View>
                     </View>
                   </View>
 
