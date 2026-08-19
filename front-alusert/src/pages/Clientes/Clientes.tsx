@@ -512,23 +512,24 @@ export default function Clientes({ onBack }: ClientesProps) {
               )}
             </div>
 
-            <div className="modal-footer">
+            <div className="button-row">
               <button 
                 type="button"
-                className="footer-btn btn-secondary"
+                className="cancel-button"
                 onClick={() => setFormModalVisible(false)}
                 disabled={submitting}
               >
-                Cancelar
+                CANCELAR
               </button>
               <button 
                 type="submit"
-                className="footer-btn btn-primary"
+                className="submit-button"
                 disabled={submitting}
               >
-                {submitting ? "Salvando..." : "Salvar"}
+                {submitting ? "SALVANDO..." : (isEditing ? "SALVAR" : "CADASTRAR")}
               </button>
             </div>
+
           </form>
         </div>
       )}

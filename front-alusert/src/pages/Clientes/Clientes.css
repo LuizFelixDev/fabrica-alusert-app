@@ -147,18 +147,89 @@
   color: var(--text-secondary);
 }
 
-/* Action Buttons Footer */
+/* Form modal action button styles */
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.cancel-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid #cbd5e1;
+  padding: 12px;
+  border-radius: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cancel-button:hover {
+  background-color: #f1f5f9;
+}
+
+.submit-button {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.submit-button:hover {
+  background-color: var(--primaryDark);
+}
+
+.submit-button:disabled, .cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Detail modal footer styles */
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
 .action-buttons-group {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .action-btn {
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 10px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 11px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
 }
 
 .btn-delete {
@@ -166,9 +237,17 @@
   color: #b91c1c;
 }
 
+.btn-delete:hover {
+  background-color: #fca5a5;
+}
+
 .btn-edit {
   background-color: #e0f2fe;
   color: #0369a1;
+}
+
+.btn-edit:hover {
+  background-color: #bae6fd;
 }
 
 .form-error-banner {
@@ -186,3 +265,4 @@
   font-weight: 600;
   color: var(--error);
 }
+
