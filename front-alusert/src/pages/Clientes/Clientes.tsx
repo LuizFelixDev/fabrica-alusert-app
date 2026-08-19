@@ -219,24 +219,25 @@ export default function Clientes({ onBack }: ClientesProps) {
 
   return (
     <div className="clientes-container page-content">
-      {/* Header toolbar */}
-      <div className="toolbar">
-        <button className="back-button" onClick={onBack} title="Voltar ao início">
-          <ChevronLeft size={20} color={colors.textSecondary} />
-          <span>Início</span>
-        </button>
+      {/* Header */}
+      <header className="header-container">
+        <div className="header-left">
+          <button className="back-button" onClick={onBack} title="Voltar ao início">
+            <ChevronLeft size={24} color="#64748b" />
+          </button>
+          <div className="title-container">
+            <h2 className="header-title">CLIENTES</h2>
+            <span className="header-subtitle">
+              {loading ? "Carregando..." : `${clients.length} clientes`}
+            </span>
+          </div>
+        </div>
 
         <button className="new-button" onClick={openNewForm}>
-          + CADASTRAR
+          + NOVO
         </button>
-      </div>
+      </header>
 
-      <div className="header-title-section" style={{ marginTop: '12px' }}>
-        <span className="date-text">Gestão de Parceiros</span>
-        <h2 className="main-title">
-          CLIENTES <span className="highlight-text">CADASTRADOS</span>
-        </h2>
-      </div>
 
       {/* Search Filter */}
       <div className="search-bar-container">
