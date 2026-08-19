@@ -201,6 +201,8 @@ export default function Home({ onNavigate }: HomeProps) {
                     onNavigate("Produtos");
                   } else if (item.title.includes("VENDAS") && onNavigate) {
                     onNavigate("Vendas");
+                  } else if (item.title.includes("CLIENTES") && onNavigate) {
+                    onNavigate("Clientes");
                   }
                 }}
               >
@@ -299,7 +301,10 @@ export default function Home({ onNavigate }: HomeProps) {
 
         <button
           className="tab-item"
-          onClick={() => setActiveTab("clientes")}
+          onClick={() => {
+            setActiveTab("clientes");
+            if (onNavigate) onNavigate("Clientes");
+          }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'clientes' ? 'tab-icon-wrapper-active' : ''}`}>
             <UserPlus size={20} color={activeTab === 'clientes' ? colors.tabBar.active : colors.tabBar.inactive} />
@@ -308,6 +313,7 @@ export default function Home({ onNavigate }: HomeProps) {
             CLIENTES
           </span>
         </button>
+
 
         <button
           className="tab-item"

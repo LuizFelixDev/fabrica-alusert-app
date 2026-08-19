@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Home from './pages/Home/Home';
 import Produtos from './pages/Produtos/Produtos';
 import Vendas from './pages/Vendas/Vendas';
+import Clientes from './pages/Clientes/Clientes';
 import AppBar from './components/AppBar/AppBar';
 import BarcodeScanner from './components/BarcodeScanner/BarcodeScanner';
 
@@ -21,6 +22,9 @@ export default function App() {
       {currentPage === "Vendas" && (
         <Vendas onBack={() => setCurrentPage("Home")} />
       )}
+      {currentPage === "Clientes" && (
+        <Clientes onBack={() => setCurrentPage("Home")} />
+      )}
 
       {scannerOpen && (
         <BarcodeScanner onClose={() => setScannerOpen(false)} />
@@ -28,4 +32,5 @@ export default function App() {
     </div>
   );
 }
+
 
