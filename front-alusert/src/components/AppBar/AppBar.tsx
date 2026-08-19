@@ -1,7 +1,12 @@
 import './AppBar.css';
 import logo from '../../assets/logo.png';
+import { Scan } from 'lucide-react';
 
-export default function AppBar() {
+interface AppBarProps {
+  onScanClick?: () => void;
+}
+
+export default function AppBar({ onScanClick }: AppBarProps) {
   return (
     <header className="app-bar">
       <div className="header-content">
@@ -10,6 +15,12 @@ export default function AppBar() {
           Alu<span className="title-orange">sert</span>
         </h1>
       </div>
+      {onScanClick && (
+        <button className="scan-trigger-btn" onClick={onScanClick} title="Escanear Código de Barras">
+          <Scan size={22} color="#f18e04" />
+        </button>
+      )}
     </header>
   );
 }
+

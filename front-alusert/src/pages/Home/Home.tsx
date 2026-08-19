@@ -199,6 +199,8 @@ export default function Home({ onNavigate }: HomeProps) {
                 onClick={() => {
                   if (item.title.includes("PRODUTOS") && onNavigate) {
                     onNavigate("Produtos");
+                  } else if (item.title.includes("VENDAS") && onNavigate) {
+                    onNavigate("Vendas");
                   }
                 }}
               >
@@ -218,7 +220,7 @@ export default function Home({ onNavigate }: HomeProps) {
       {/* Last Sales */}
       <div className="section-header-container-with-link">
         <h3 className="section-title">ÚLTIMAS VENDAS</h3>
-        <button className="section-header-link">VER TODAS →</button>
+        <button className="section-header-link" onClick={() => onNavigate && onNavigate("Vendas")}>VER TODAS →</button>
       </div>
 
       <div className="sales-card">
@@ -282,7 +284,10 @@ export default function Home({ onNavigate }: HomeProps) {
 
         <button
           className="tab-item"
-          onClick={() => setActiveTab("vendas")}
+          onClick={() => {
+            setActiveTab("vendas");
+            if (onNavigate) onNavigate("Vendas");
+          }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'vendas' ? 'tab-icon-wrapper-active' : ''}`}>
             <BarChart2 size={20} color={activeTab === 'vendas' ? colors.tabBar.active : colors.tabBar.inactive} />

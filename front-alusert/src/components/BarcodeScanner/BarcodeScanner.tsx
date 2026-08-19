@@ -1,0 +1,351 @@
+import { useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+import { X, Search, WifiOff, AlertTriangle, Disc } from "lucide-react";
+import "./BarcodeScanner.css";
+import { ENDPOINTS } from "../../constants/api";
+import colors from "../../constants/colors";
+
+interface ProductSpecification {
+  id?: number;
+  tipo_componente: string;
+  diametro_mm: number;
+  altura_mm: number;
+  preco_custo?: number | string | null;
+  peso?: number | string | null;
+}
+
+interface Product {
+  id: number;
+  codigo_barras: string | null;
+  nome: string;
+  descricao: string | null;
+  categoria: string | null;
+  quantidade_estoque: number;
+  estoque_minimo: number;
+  unidade_medida: string | null;
+  peso_kg: number | null;
+  preco_custo: number | string | null;
+  preco_venda: number | string | null;
+  status: boolean;
+  especificacoes?: ProductSpecification[];
+}
+
+interface BarcodeScannerProps {
+  onClose: () => void;
+}
+
+export default function BarcodeScanner({ onClose }: BarcodeScannerProps) {
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [cameraActive, setCameraActive] = useState<boolean>(false);
+  const [manualCode, setManualCode] = useState<string>("");
+
+  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
+  const scannerId = "qr-reader";
+
+  // Start Camera Scanner
+  const startScanner = () => {
+    setProduct(null);
+    setSearchError(null);
+
+    
+    // Check if camera container exists
+    setTimeout(() => {
+      const container = document.getElementById(scannerId);
+      if (!container) return;
+
+      try {
+        const html5Qrcode = new Html5Qrcode(scannerId);
+        html5QrcodeRef.current = html5Qrcode;
+
+        html5Qrcode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 280, height: 160 },
+            aspectRatio: 1.777778
+          },
+          (decodedText) => {
+            handleCodeScanned(decodedText);
+          },
+          () => {
+            // Failure (silent)
+          }
+        ).then(() => {
+          setCameraActive(true);
+        }).catch(err => {
+          console.error("Camera start error:", err);
+          setCameraActive(false);
+        });
+      } catch (err) {
+        console.error("Html5Qrcode initialization error:", err);
+      }
+    }, 100);
+  };
+
+  // Stop Camera Scanner
+  const stopScanner = async () => {
+    if (html5QrcodeRef.current && html5QrcodeRef.current.isScanning) {
+      try {
+        await html5QrcodeRef.current.stop();
+        html5QrcodeRef.current = null;
+        setCameraActive(false);
+      } catch (err) {
+        console.error("Failed to stop scanner", err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    startScanner();
+    return () => {
+      stopScanner();
+    };
+  }, []);
+
+  // Handle scanned or typed code
+  const handleCodeScanned = async (code: string) => {
+    if (!code.trim()) return;
+
+    stopScanner();
+    
+    try {
+      setLoading(true);
+      setSearchError(null);
+
+      const response = await fetch(ENDPOINTS.produtos);
+      if (!response.ok) throw new Error("Erro ao buscar produtos");
+
+      const products: Product[] = await response.json();
+      const foundProduct = products.find(
+        p => p.codigo_barras && p.codigo_barras.trim().toLowerCase() === code.trim().toLowerCase()
+      );
+
+      if (foundProduct) {
+        // Fetch detailed product info to get its specifications
+        const detailsRes = await fetch(`${ENDPOINTS.produtos}/${foundProduct.id}`);
+        if (detailsRes.ok) {
+          const detailedProduct = await detailsRes.json();
+          setProduct(detailedProduct);
+        } else {
+          setProduct(foundProduct);
+        }
+      } else {
+        setSearchError(`Nenhum produto cadastrado com o código: ${code}`);
+      }
+    } catch (err) {
+      console.error(err);
+      setSearchError("Erro de conexão ao buscar detalhes do produto.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualCode.trim()) {
+      handleCodeScanned(manualCode.trim());
+    }
+  };
+
+  const formatPrice = (priceVal?: string | number | null) => {
+    if (priceVal === undefined || priceVal === null) return "R$ 0,00";
+    const num = Number(priceVal);
+    return isNaN(num) ? "R$ 0,00" : `R$ ${num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const calculateMargin = (costVal?: string | number | null, sellVal?: string | number | null) => {
+    const cost = costVal ? Number(costVal) : 0;
+    const sell = sellVal ? Number(sellVal) : 0;
+    if (!cost || !sell || isNaN(cost) || isNaN(sell) || sell === 0) return "N/A";
+    const margin = ((sell - cost) / sell) * 100;
+    return `${Math.round(margin)}%`;
+  };
+
+  return (
+    <div className="scanner-modal-overlay">
+      <div className="scanner-modal-content">
+        {/* Header */}
+        <div className="scanner-modal-header">
+          <h3 className="scanner-modal-title">Escanear Produto</h3>
+          <button className="scanner-close-btn" onClick={onClose}>
+            <X size={20} color="#64748b" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="scanner-modal-body">
+          {loading && (
+            <div className="scanner-loading-container">
+              <div className="spinner"></div>
+              <span className="scanner-loading-text">Buscando produto...</span>
+            </div>
+          )}
+
+          {/* 1. Camera View / Scanning state */}
+          {!loading && !product && !searchError && (
+            <div className="scanning-view">
+              <div className="camera-frame-container">
+                <div id={scannerId} className="camera-viewport"></div>
+                {!cameraActive && (
+                  <div className="camera-fallback-msg">
+                    <AlertTriangle size={32} color="#d97706" style={{ marginBottom: '8px' }} />
+                    <span>Câmera não disponível ou permissão negada.</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Input Fallback */}
+              <form className="manual-input-form" onSubmit={handleManualSearch}>
+                <label className="manual-input-label">Ou digite o código de barras:</label>
+                <div className="manual-input-row">
+                  <input
+                    type="text"
+                    className="manual-text-input"
+                    placeholder="Ex: CUSC16-020826-001"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                  />
+                  <button type="submit" className="manual-search-btn">
+                    <Search size={16} color="#ffffff" />
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {/* 2. Error State */}
+          {!loading && searchError && (
+            <div className="scanner-error-container">
+              <WifiOff size={40} color={colors.error.text} style={{ marginBottom: '10px' }} />
+              <p className="scanner-error-text">{searchError}</p>
+              <button 
+                className="scanner-retry-btn"
+                onClick={() => {
+                  setManualCode("");
+                  startScanner();
+                }}
+              >
+                Tentar Novamente
+              </button>
+            </div>
+          )}
+
+          {/* 3. Product Details Display */}
+          {!loading && product && (
+            <div className="scanned-product-details">
+              <div className="scanned-product-header">
+                <h4 className="scanned-title">{product.nome}</h4>
+                <span className="scanned-barcode-tag">{product.codigo_barras}</span>
+              </div>
+
+              <div className="scanned-details-scroll">
+                {product.descricao && (
+                  <div className="scanned-section">
+                    <span className="scanned-section-label">DESCRIÇÃO</span>
+                    <p className="scanned-desc">{product.descricao}</p>
+                  </div>
+                )}
+
+                <div className="scanned-section">
+                  <span className="scanned-section-label">INFORMAÇÕES DE ESTOQUE</span>
+                  <div className="scanned-grid">
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Estoque Atual</span>
+                      <span className="scanned-item-value">
+                        {product.quantidade_estoque} {product.unidade_medida || "un"}
+                      </span>
+                    </div>
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Estoque Mínimo</span>
+                      <span className="scanned-item-value">
+                        {product.estoque_minimo} {product.unidade_medida || "un"}
+                      </span>
+                    </div>
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Status</span>
+                      <span 
+                        className="scanned-item-value"
+                        style={{ color: product.status ? colors.success.text : colors.error.text }}
+                      >
+                        {product.status ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="scanned-section">
+                  <span className="scanned-section-label">VALORES</span>
+                  <div className="scanned-grid">
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Preço Custo</span>
+                      <span className="scanned-item-value">{formatPrice(product.preco_custo)}</span>
+                    </div>
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Preço Venda</span>
+                      <span className="scanned-item-value">{formatPrice(product.preco_venda)}</span>
+                    </div>
+                    <div className="scanned-grid-item">
+                      <span className="scanned-item-label">Margem Lucro</span>
+                      <span className="scanned-item-value" style={{ color: colors.success.text }}>
+                        {calculateMargin(product.preco_custo, product.preco_venda)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {product.peso_kg !== null && (
+                  <div className="scanned-section">
+                    <span className="scanned-section-label">MEDIDAS</span>
+                    <div className="scanned-grid">
+                      <div className="scanned-grid-item">
+                        <span className="scanned-item-label">Peso</span>
+                        <span className="scanned-item-value">{product.peso_kg} kg</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Specifications Discs */}
+                {product.especificacoes && product.especificacoes.length > 0 && (
+                  <div className="scanned-section">
+                    <span className="scanned-section-label">ESPECIFICAÇÕES DE DISCOS</span>
+                    <div className="scanned-specs-list">
+                      {product.especificacoes.map((spec, specIdx) => (
+                        <div key={spec.id || specIdx} className="scanned-spec-item">
+                          <Disc size={12} color={colors.primary} style={{ marginRight: '6px', flexShrink: 0 }} />
+                          <div className="scanned-spec-texts">
+                            <span className="scanned-spec-name"><strong>{spec.tipo_componente}</strong>: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm</span>
+                            <span className="scanned-spec-subtext">
+                              {spec.preco_custo !== null && spec.preco_custo !== undefined && `Custo: R$ ${Number(spec.preco_custo).toFixed(2)}`}
+                              {spec.peso !== null && spec.peso !== undefined && ` | Peso: ${Number(spec.peso)} kg`}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Scan Another Button */}
+              <div className="scanned-footer-actions">
+                <button 
+                  className="scanner-scan-another-btn"
+                  onClick={() => {
+                    setManualCode("");
+                    startScanner();
+                  }}
+                >
+                  Escanear Outro
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
