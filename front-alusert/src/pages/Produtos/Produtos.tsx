@@ -19,6 +19,8 @@ interface ProductSpecification {
   tipo_componente: string;
   diametro_mm: number | string;
   altura_mm: number | string;
+  preco_custo?: number | string | null;
+  peso?: number | string | null;
 }
 
 interface BackendProduct {
@@ -76,6 +78,8 @@ export default function Produtos({ onBack }: ProdutosProps) {
     tipo_componente: string;
     diametro_mm: string;
     altura_mm: string;
+    preco_custo: string;
+    peso: string;
   }[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -153,7 +157,9 @@ export default function Produtos({ onBack }: ProdutosProps) {
           .map(d => ({
             tipo_componente: d.tipo_componente.trim() || "Disco",
             diametro_mm: d.diametro_mm ? parseFloat(d.diametro_mm) : 0,
-            altura_mm: d.altura_mm ? parseFloat(d.altura_mm) : 0
+            altura_mm: d.altura_mm ? parseFloat(d.altura_mm) : 0,
+            preco_custo: d.preco_custo ? parseFloat(d.preco_custo) : null,
+            peso: d.peso ? parseFloat(d.peso) : null
           }))
       };
 
@@ -256,7 +262,9 @@ export default function Produtos({ onBack }: ProdutosProps) {
         selectedProduct.especificacoes.map(d => ({
           tipo_componente: d.tipo_componente || "",
           diametro_mm: String(d.diametro_mm),
-          altura_mm: String(d.altura_mm)
+          altura_mm: String(d.altura_mm),
+          preco_custo: d.preco_custo !== null && d.preco_custo !== undefined ? String(d.preco_custo) : "",
+          peso: d.peso !== null && d.peso !== undefined ? String(d.peso) : ""
         }))
       );
     } else {
@@ -579,6 +587,8 @@ export default function Produtos({ onBack }: ProdutosProps) {
                         <Disc size={14} color={colors.primary} style={{ marginRight: '8px' }} />
                         <span className="details-disc-item-text">
                           <strong>{spec.tipo_componente}</strong>: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm
+                          {spec.preco_custo !== null && spec.preco_custo !== undefined && ` | Custo: R$ ${Number(spec.preco_custo).toFixed(2)}`}
+                          {spec.peso !== null && spec.peso !== undefined && ` | Peso: ${Number(spec.peso)} kg`}
                         </span>
                       </div>
                     ))}
@@ -628,11 +638,11 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 required
               />
 
-              <label className="input-label">CÓDIGO DE BARRAS</label>
+              <label className="input-label">CÓDIGO DE BARRAS (DEIXE EM BRANCO PARA GERAR AUTOMATICAMENTE)</label>
               <input
                 type="text"
                 className="input"
-                placeholder="Ex: CUSC16-020826-001"
+                placeholder="Gerado automaticamente se deixado em branco..."
                 value={formCodigoBarras}
                 onChange={(e) => setFormCodigoBarras(e.target.value)}
               />
@@ -762,7 +772,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 <button
                   type="button"
                   className="add-disc-button"
-                  onClick={() => setFormDiscos([...formDiscos, { tipo_componente: "", diametro_mm: "", altura_mm: "" }])}
+                  onClick={() => setFormDiscos([...formDiscos, { tipo_componente: "", diametro_mm: "", altura_mm: "", preco_custo: "", peso: "" }])}
                 >
                   <PlusCircle size={14} style={{ marginRight: '4px' }} />
                   Adicionar Disco
@@ -822,6 +832,39 @@ export default function Produtos({ onBack }: ProdutosProps) {
                         onChange={(e) => {
                           const updated = [...formDiscos];
                           updated[idx].altura_mm = e.target.value;
+                          setFormDiscos(updated);
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="half-input-container">
+                      <label className="input-label">PREÇO DE CUSTO (R$)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="input"
+                        placeholder="Ex: 10.00"
+                        value={disco.preco_custo}
+                        onChange={(e) => {
+                          const updated = [...formDiscos];
+                          updated[idx].preco_custo = e.target.value;
+                          setFormDiscos(updated);
+                        }}
+                      />
+                    </div>
+                    <div className="half-input-container">
+                      <label className="input-label">PESO (KG)</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="input"
+                        placeholder="Ex: 0.350"
+                        value={disco.peso}
+                        onChange={(e) => {
+                          const updated = [...formDiscos];
+                          updated[idx].peso = e.target.value;
                           setFormDiscos(updated);
                         }}
                       />
