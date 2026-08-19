@@ -99,6 +99,77 @@ export default function Vendas({ onBack }: VendasProps) {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [productSearchTerm, setProductSearchTerm] = useState<string>("");
 
+  // Quick Client States
+  const [quickClientModalOpen, setQuickClientModalOpen] = useState<boolean>(false);
+  const [qcNome, setQcNome] = useState<string>("");
+  const [qcCpfCnpj, setQcCpfCnpj] = useState<string>("");
+  const [qcTelefone, setQcTelefone] = useState<string>("");
+  const [qcEmail, setQcEmail] = useState<string>("");
+  const [qcRua, setQcRua] = useState<string>("");
+  const [qcBairro, setQcBairro] = useState<string>("");
+  const [qcCidade, setQcCidade] = useState<string>("");
+  const [qcEstado, setQcEstado] = useState<string>("");
+  const [qcError, setQcError] = useState<string | null>(null);
+  const [qcSubmitting, setQcSubmitting] = useState<boolean>(false);
+
+  const handleSaveQuickClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQcError(null);
+
+    if (!qcNome.trim() || !qcCpfCnpj.trim() || !qcRua.trim() || !qcBairro.trim()) {
+      setQcError("Campos Nome, CPF/CNPJ, Rua e Bairro são obrigatórios.");
+      return;
+    }
+
+    try {
+      setQcSubmitting(true);
+      const body = {
+        nome: qcNome.trim(),
+        cpf_cnpj: qcCpfCnpj.trim(),
+        telefone: qcTelefone.trim() || null,
+        email: qcEmail.trim() || null,
+        rua: qcRua.trim(),
+        bairro: qcBairro.trim(),
+        cidade: qcCidade.trim() || null,
+        estado: qcEstado.trim().toUpperCase() || null
+      };
+
+      const res = await fetch(ENDPOINTS.clientes, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      const resData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(resData.error || "Erro ao salvar cliente");
+      }
+
+      // Append newly created client to clients list
+      setClients([...clients, resData]);
+      // Select the new client automatically in the select input
+      setFormClientId(String(resData.id));
+
+      // Reset and close
+      setQuickClientModalOpen(false);
+      setQcNome("");
+      setQcCpfCnpj("");
+      setQcTelefone("");
+      setQcEmail("");
+      setQcRua("");
+      setQcBairro("");
+      setQcCidade("");
+      setQcEstado("");
+    } catch (err: any) {
+      console.error(err);
+      setQcError(err.message || "Erro ao cadastrar cliente.");
+    } finally {
+      setQcSubmitting(false);
+    }
+  };
+
+
   const handleAddProductToCart = (prod: Product) => {
     const existingIndex = formItems.findIndex(item => item.id_produto === String(prod.id));
 
@@ -646,7 +717,26 @@ export default function Vendas({ onBack }: VendasProps) {
             
             <div className="form-scroll">
               {/* Select Client */}
-              <label className="input-label">CLIENTE *</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="input-label" style={{ margin: 0 }}>CLIENTE *</label>
+                <button
+                  type="button"
+                  onClick={() => setQuickClientModalOpen(true)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: colors.primary,
+                    fontSize: '11px',
+                    fontFamily: 'Montserrat, sans-serif',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    padding: '2px 0'
+                  }}
+                >
+                  + CADASTRAR CLIENTE
+                </button>
+              </div>
+
               <select
                 className="input select-input"
                 value={formClientId}
@@ -874,6 +964,132 @@ export default function Vendas({ onBack }: VendasProps) {
                 disabled={submitting}
               >
                 {submitting ? "..." : "SALVAR VENDA"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+      {quickClientModalOpen && (
+        <div className="modal-overlay" style={{ zIndex: 200 }}>
+          <form className="modal-content" onSubmit={handleSaveQuickClient}>
+            <h3 className="modal-title">Cadastrar Cliente Rápido</h3>
+
+            <div className="form-scroll">
+              <label className="input-label">NOME COMPLETO *</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: João da Silva"
+                value={qcNome}
+                onChange={(e) => setQcNome(e.target.value)}
+                required
+              />
+
+              <label className="input-label">CPF / CNPJ *</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: 123.456.789-00"
+                value={qcCpfCnpj}
+                onChange={(e) => setQcCpfCnpj(e.target.value)}
+                required
+              />
+
+              <div className="form-row">
+                <div className="half-input-container">
+                  <label className="input-label">TELEFONE</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Ex: (81) 98888-8888"
+                    value={qcTelefone}
+                    onChange={(e) => setQcTelefone(e.target.value)}
+                  />
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">E-MAIL</label>
+                  <input
+                    type="email"
+                    className="input"
+                    placeholder="cliente@email.com"
+                    value={qcEmail}
+                    onChange={(e) => setQcEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row" style={{ marginTop: '8px' }}>
+                <div className="half-input-container">
+                  <label className="input-label">RUA / LOGRADOURO *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Ex: Av. Principal, 100"
+                    value={qcRua}
+                    onChange={(e) => setQcRua(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">BAIRRO *</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Ex: Centro"
+                    value={qcBairro}
+                    onChange={(e) => setQcBairro(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-row" style={{ marginTop: '8px' }}>
+                <div className="half-input-container">
+                  <label className="input-label">CIDADE</label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Ex: Caruaru"
+                    value={qcCidade}
+                    onChange={(e) => setQcCidade(e.target.value)}
+                  />
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">ESTADO (UF)</label>
+                  <input
+                    type="text"
+                    maxLength={2}
+                    className="input"
+                    placeholder="Ex: PE"
+                    value={qcEstado}
+                    onChange={(e) => setQcEstado(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {qcError && (
+                <div className="form-error-banner">
+                  <AlertCircle size={14} color={colors.error.text} style={{ marginRight: '6px', flexShrink: 0 }} />
+                  <span className="form-error-text">{qcError}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="button-row">
+              <button 
+                type="button"
+                className="cancel-button"
+                onClick={() => setQuickClientModalOpen(false)}
+                disabled={qcSubmitting}
+              >
+                CANCELAR
+              </button>
+              <button 
+                type="submit"
+                className="submit-button"
+                disabled={qcSubmitting}
+              >
+                {qcSubmitting ? "SALVANDO..." : "CADASTRAR"}
               </button>
             </div>
           </form>
