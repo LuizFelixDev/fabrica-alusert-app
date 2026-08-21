@@ -5,13 +5,17 @@ import "./BarcodeScanner.css";
 import { ENDPOINTS } from "../../constants/api";
 import colors from "../../constants/colors";
 
-interface ProductSpecification {
-  id?: number;
-  tipo_componente: string;
-  diametro_mm: number;
-  altura_mm: number;
-  preco_custo?: number | string | null;
+interface ProductMateriaPrima {
+  link_id?: number;
+  id_materia_prima: number;
+  nome?: string;
+  unidade_medida?: string;
+  quantidade_utilizada: number | string;
+  tipo_componente?: string | null;
+  diametro_mm?: number | string | null;
+  altura_mm?: number | string | null;
   peso?: number | string | null;
+  valor_unitario?: number | string | null;
 }
 
 interface Product {
@@ -27,7 +31,7 @@ interface Product {
   preco_custo: number | string | null;
   preco_venda: number | string | null;
   status: boolean;
-  especificacoes?: ProductSpecification[];
+  materias_primas?: ProductMateriaPrima[];
 }
 
 interface BarcodeScannerProps {
@@ -308,23 +312,29 @@ export default function BarcodeScanner({ onClose }: BarcodeScannerProps) {
                   </div>
                 )}
 
-                {/* Specifications Discs */}
-                {product.especificacoes && product.especificacoes.length > 0 && (
+                {/* Matérias-Primas e Discos Vinculados */}
+                {product.materias_primas && product.materias_primas.length > 0 && (
                   <div className="scanned-section">
-                    <span className="scanned-section-label">ESPECIFICAÇÕES DE DISCOS</span>
+                    <span className="scanned-section-label">MATÉRIAS-PRIMAS / COMPONENTES</span>
                     <div className="scanned-specs-list">
-                      {product.especificacoes.map((spec, specIdx) => (
-                        <div key={spec.id || specIdx} className="scanned-spec-item">
-                          <Disc size={12} color={colors.primary} style={{ marginRight: '6px', flexShrink: 0 }} />
-                          <div className="scanned-spec-texts">
-                            <span className="scanned-spec-name"><strong>{spec.tipo_componente}</strong>: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm</span>
-                            <span className="scanned-spec-subtext">
-                              {spec.preco_custo !== null && spec.preco_custo !== undefined && `Custo: R$ ${Number(spec.preco_custo).toFixed(2)}`}
-                              {spec.peso !== null && spec.peso !== undefined && ` | Peso: ${Number(spec.peso)} kg`}
-                            </span>
+                      {product.materias_primas.map((mat, matIdx) => {
+                        const isDisc = !!mat.tipo_componente;
+                        return (
+                          <div key={mat.link_id || matIdx} className="scanned-spec-item">
+                            <Disc size={12} color={colors.primary} style={{ marginRight: '6px', flexShrink: 0 }} />
+                            <div className="scanned-spec-texts">
+                              <span className="scanned-spec-name">
+                                <strong>{mat.nome}</strong>: Consome {mat.quantidade_utilizada} {mat.unidade_medida}
+                                {isDisc && ` (Ø${Number(mat.diametro_mm)}mm × ${Number(mat.altura_mm)}mm)`}
+                              </span>
+                              <span className="scanned-spec-subtext">
+                                {mat.peso !== null && mat.peso !== undefined && `Peso: ${Number(mat.peso)} kg`}
+                                {mat.valor_unitario !== null && mat.valor_unitario !== undefined && ` | Custo Unitário: R$ ${Number(mat.valor_unitario).toFixed(2)}`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
