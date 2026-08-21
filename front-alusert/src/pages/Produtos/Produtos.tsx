@@ -881,15 +881,14 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
                     type="button"
-                    className="add-disc-button"
-                    style={{ backgroundColor: '#10b981', borderColor: '#10b981', boxShadow: 'none' }}
+                    className="add-material-quick-btn"
                     onClick={() => setRawModalVisible(true)}
                   >
                     ⚡ Novo Cadastro
                   </button>
                   <button
                     type="button"
-                    className="add-disc-button"
+                    className="add-material-link-btn"
                     onClick={() => setFormMaterials([...formMaterials, { id_materia_prima: "", quantidade_utilizada: "" }])}
                   >
                     <PlusCircle size={14} style={{ marginRight: '4px' }} />

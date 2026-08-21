@@ -626,3 +626,47 @@ input:checked + .slider:before {
   border-radius: 8px;
   font-size: 12px;
 }
+
+.add-material-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.add-material-quick-btn:hover {
+  background-color: #d1fae5;
+  color: #047857;
+  border-color: #34d399;
+}
+
+.add-material-link-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.add-material-link-btn:hover {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+  border-color: #60a5fa;
+}
