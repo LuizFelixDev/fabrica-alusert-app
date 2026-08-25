@@ -13,14 +13,17 @@ import "./Produtos.css";
 import colors from "../../constants/colors";
 import { ENDPOINTS } from "../../constants/api";
 
-interface ProductSpecification {
-  id?: number;
-  produto_id?: number;
-  tipo_componente: string;
-  diametro_mm: number | string;
-  altura_mm: number | string;
-  preco_custo?: number | string | null;
+interface ProductMateriaPrima {
+  link_id?: number;
+  id_materia_prima: number;
+  nome?: string;
+  unidade_medida?: string;
+  quantidade_utilizada: number | string;
+  tipo_componente?: string | null;
+  diametro_mm?: number | string | null;
+  altura_mm?: number | string | null;
   peso?: number | string | null;
+  valor_unitario?: number | string | null;
 }
 
 interface BackendProduct {
@@ -39,7 +42,7 @@ interface BackendProduct {
   status: boolean;
   data_cadastro?: string;
   data_atualizacao?: string;
-  especificacoes?: ProductSpecification[];
+  materias_primas?: ProductMateriaPrima[];
 }
 
 interface ProdutosProps {
@@ -74,15 +77,29 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [formEstoqueMinimo, setFormEstoqueMinimo] = useState("");
   const [formPesoKg, setFormPesoKg] = useState("");
   const [formStatus, setFormStatus] = useState<boolean>(true);
-  const [formDiscos, setFormDiscos] = useState<{
-    tipo_componente: string;
-    diametro_mm: string;
-    altura_mm: string;
-    preco_custo: string;
-    peso: string;
+  const [formMaterials, setFormMaterials] = useState<{
+    id_materia_prima: string;
+    quantidade_utilizada: string;
   }[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
+
+  const [availableMaterials, setAvailableMaterials] = useState<any[]>([]);
+
+  // Quick Create Raw Material State
+  const [rawModalVisible, setRawModalVisible] = useState<boolean>(false);
+  const [rawNome, setRawNome] = useState("");
+  const [rawDescricao, setRawDescricao] = useState("");
+  const [rawUnidade, setRawUnidade] = useState("kg");
+  const [rawEstoque, setRawEstoque] = useState("");
+  const [rawValorUnitario, setRawValorUnitario] = useState("");
+  const [rawEstoqueMinimo, setRawEstoqueMinimo] = useState("");
+  const [rawTipoComponente, setRawTipoComponente] = useState("");
+  const [rawDiametro, setRawDiametro] = useState("");
+  const [rawAltura, setRawAltura] = useState("");
+  const [rawPeso, setRawPeso] = useState("");
+  const [rawSubmitting, setRawSubmitting] = useState<boolean>(false);
+  const [rawError, setRawError] = useState<string | null>(null);
 
   // Fetch products from backend
   const fetchProducts = async () => {
@@ -115,8 +132,90 @@ export default function Produtos({ onBack }: ProdutosProps) {
     }
   };
 
+  const fetchAvailableMaterials = async () => {
+    try {
+      const response = await fetch(ENDPOINTS.materiasPrimas);
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      setAvailableMaterials(data);
+    } catch (err) {
+      console.error("Erro ao buscar matérias-primas:", err);
+    }
+  };
+
+  const handleQuickCreateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rawNome.trim() || !rawUnidade.trim()) {
+      setRawError("Nome e Unidade de Medida são obrigatórios.");
+      return;
+    }
+
+    try {
+      setRawSubmitting(true);
+      setRawError(null);
+
+      const payload = {
+        nome: rawNome.trim(),
+        descricao: rawDescricao.trim() || null,
+        unidade_medida: rawUnidade.trim(),
+        quantidade_estoque: rawEstoque ? parseFloat(rawEstoque) : 0,
+        valor_unitario: rawValorUnitario ? parseFloat(rawValorUnitario) : 0,
+        estoque_minimo: rawEstoqueMinimo ? parseFloat(rawEstoqueMinimo) : 0,
+        tipo_componente: rawTipoComponente.trim() || null,
+        diametro_mm: rawDiametro ? parseFloat(rawDiametro) : null,
+        altura_mm: rawAltura ? parseFloat(rawAltura) : null,
+        peso: rawPeso ? parseFloat(rawPeso) : null,
+      };
+
+      const response = await fetch(ENDPOINTS.materiasPrimas, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || `Erro HTTP: ${response.status}`);
+      }
+
+      const newMat = await response.json();
+      
+      // Update available materials list
+      setAvailableMaterials((prev) => [...prev, newMat]);
+
+      // Automatically link it to the product form!
+      setFormMaterials((prev) => [
+        ...prev,
+        { id_materia_prima: String(newMat.id), quantidade_utilizada: "1" },
+      ]);
+
+      // Reset fields
+      setRawNome("");
+      setRawDescricao("");
+      setRawUnidade("kg");
+      setRawEstoque("");
+      setRawValorUnitario("");
+      setRawEstoqueMinimo("");
+      setRawTipoComponente("");
+      setRawDiametro("");
+      setRawAltura("");
+      setRawPeso("");
+      setRawModalVisible(false);
+    } catch (err: any) {
+      console.error("Erro ao salvar matéria-prima rápida:", err);
+      setRawError(err.message || "Erro ao salvar matéria-prima.");
+    } finally {
+      setRawSubmitting(false);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchAvailableMaterials();
   }, []);
 
   // Form submission handler
@@ -152,14 +251,11 @@ export default function Produtos({ onBack }: ProdutosProps) {
         estoque_minimo: formEstoqueMinimo ? parseInt(formEstoqueMinimo, 10) : 0,
         peso_kg: formPesoKg ? parseFloat(formPesoKg) : null,
         status: formStatus,
-        especificacoes: formDiscos
-          .filter(d => d.tipo_componente.trim() !== "" || d.diametro_mm.trim() !== "" || d.altura_mm.trim() !== "")
-          .map(d => ({
-            tipo_componente: d.tipo_componente.trim() || "Disco",
-            diametro_mm: d.diametro_mm ? parseFloat(d.diametro_mm) : 0,
-            altura_mm: d.altura_mm ? parseFloat(d.altura_mm) : 0,
-            preco_custo: d.preco_custo ? parseFloat(d.preco_custo) : null,
-            peso: d.peso ? parseFloat(d.peso) : null
+        materias_primas: formMaterials
+          .filter(m => m.id_materia_prima !== "" && m.quantidade_utilizada !== "")
+          .map(m => ({
+            id_materia_prima: parseInt(m.id_materia_prima, 10),
+            quantidade_utilizada: parseFloat(m.quantidade_utilizada)
           }))
       };
 
@@ -194,7 +290,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
       setFormEstoqueMinimo("");
       setFormPesoKg("");
       setFormStatus(true);
-      setFormDiscos([]);
+      setFormMaterials([]);
       setIsEditing(false);
       setSelectedProduct(null);
       setModalVisible(false);
@@ -257,18 +353,15 @@ export default function Produtos({ onBack }: ProdutosProps) {
     setFormPrecoVenda(selectedProduct.preco_venda !== null ? String(selectedProduct.preco_venda) : "");
     setFormStatus(selectedProduct.status);
 
-    if (selectedProduct.especificacoes && selectedProduct.especificacoes.length > 0) {
-      setFormDiscos(
-        selectedProduct.especificacoes.map(d => ({
-          tipo_componente: d.tipo_componente || "",
-          diametro_mm: String(d.diametro_mm),
-          altura_mm: String(d.altura_mm),
-          preco_custo: d.preco_custo !== null && d.preco_custo !== undefined ? String(d.preco_custo) : "",
-          peso: d.peso !== null && d.peso !== undefined ? String(d.peso) : ""
+    if (selectedProduct.materias_primas && selectedProduct.materias_primas.length > 0) {
+      setFormMaterials(
+        selectedProduct.materias_primas.map(m => ({
+          id_materia_prima: String(m.id_materia_prima),
+          quantidade_utilizada: String(m.quantidade_utilizada)
         }))
       );
     } else {
-      setFormDiscos([]);
+      setFormMaterials([]);
     }
 
     setIsEditing(true);
@@ -327,7 +420,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
           className="new-button"
           onClick={() => {
             setFormError(null);
-            setFormDiscos([]);
+            setFormMaterials([]);
             setIsEditing(false);
             setSelectedProduct(null);
             setFormNome("");
@@ -435,16 +528,24 @@ export default function Produtos({ onBack }: ProdutosProps) {
                         </span>
                       </div>
 
-                      {product.especificacoes && product.especificacoes.length > 0 && (
+                      {product.materias_primas && product.materias_primas.length > 0 && (
                         <div className="specs-container">
-                          {product.especificacoes.map((spec, specIdx) => (
-                            <div key={spec.id || specIdx} className="spec-badge">
-                              <Disc size={10} color="#475569" className="spec-icon" />
-                              <span className="spec-badge-text">
-                                {spec.tipo_componente}: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm
-                              </span>
-                            </div>
-                          ))}
+                          {product.materias_primas.map((mat, matIdx) => {
+                            const isDisc = !!mat.tipo_componente;
+                            return (
+                              <div key={mat.link_id || matIdx} className="spec-badge">
+                                {isDisc ? (
+                                  <Disc size={10} color="#475569" className="spec-icon" />
+                                ) : (
+                                  <span style={{ fontSize: '8px', marginRight: '4px' }}>⚙️</span>
+                                )}
+                                <span className="spec-badge-text">
+                                  {mat.nome} ({mat.quantidade_utilizada}{mat.unidade_medida})
+                                  {isDisc && ` Ø${Number(mat.diametro_mm)}mm × ${Number(mat.altura_mm)}mm`}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -577,21 +678,29 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 </div>
               </div>
 
-              {/* Especificações de Discos */}
-              {selectedProduct.especificacoes && selectedProduct.especificacoes.length > 0 && (
+              {/* Matérias-Primas e Discos Vinculados */}
+              {selectedProduct.materias_primas && selectedProduct.materias_primas.length > 0 && (
                 <div className="details-section">
-                  <span className="details-section-label">ESPECIFICAÇÕES DE DISCOS</span>
+                  <span className="details-section-label">MATÉRIAS-PRIMAS / COMPONENTES</span>
                   <div className="details-discs-list">
-                    {selectedProduct.especificacoes.map((spec, specIdx) => (
-                      <div key={spec.id || specIdx} className="details-disc-item">
-                        <Disc size={14} color={colors.primary} style={{ marginRight: '8px' }} />
-                        <span className="details-disc-item-text">
-                          <strong>{spec.tipo_componente}</strong>: Ø{Number(spec.diametro_mm)}mm × {Number(spec.altura_mm)}mm
-                          {spec.preco_custo !== null && spec.preco_custo !== undefined && ` | Custo: R$ ${Number(spec.preco_custo).toFixed(2)}`}
-                          {spec.peso !== null && spec.peso !== undefined && ` | Peso: ${Number(spec.peso)} kg`}
-                        </span>
-                      </div>
-                    ))}
+                    {selectedProduct.materias_primas.map((mat, matIdx) => {
+                      const isDisc = !!mat.tipo_componente;
+                      return (
+                        <div key={mat.link_id || matIdx} className="details-disc-item" style={{ marginBottom: '8px' }}>
+                          {isDisc ? (
+                            <Disc size={14} color={colors.primary} style={{ marginRight: '8px' }} />
+                          ) : (
+                            <Package size={14} color="#64748b" style={{ marginRight: '8px' }} />
+                          )}
+                          <span className="details-disc-item-text">
+                            <strong>{mat.nome}</strong>: Consome <strong>{mat.quantidade_utilizada} {mat.unidade_medida}</strong>
+                            {isDisc && ` | Ø${Number(mat.diametro_mm)}mm × ${Number(mat.altura_mm)}mm`}
+                            {mat.peso !== null && mat.peso !== undefined && ` | Peso: ${Number(mat.peso)} kg`}
+                            {mat.valor_unitario !== null && mat.valor_unitario !== undefined && ` | Custo Unitário: R$ ${Number(mat.valor_unitario).toFixed(2)}`}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -766,112 +875,87 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 </label>
               </div>
 
-              {/* Especificações de Discos */}
-              <div className="disc-section-header">
-                <span className="disc-section-title">ESPECIFICAÇÕES DE DISCO</span>
-                <button
-                  type="button"
-                  className="add-disc-button"
-                  onClick={() => setFormDiscos([...formDiscos, { tipo_componente: "", diametro_mm: "", altura_mm: "", preco_custo: "", peso: "" }])}
-                >
-                  <PlusCircle size={14} style={{ marginRight: '4px' }} />
-                  Adicionar Disco
-                </button>
+              {/* Matérias-Primas do Produto */}
+              <div className="disc-section-header" style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '15px' }}>
+                <span className="disc-section-title">MATÉRIAS-PRIMAS DO PRODUTO</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className="add-material-quick-btn"
+                    onClick={() => setRawModalVisible(true)}
+                  >
+                    ⚡ Novo Cadastro
+                  </button>
+                  <button
+                    type="button"
+                    className="add-material-link-btn"
+                    onClick={() => setFormMaterials([...formMaterials, { id_materia_prima: "", quantidade_utilizada: "" }])}
+                  >
+                    <PlusCircle size={14} style={{ marginRight: '4px' }} />
+                    Vincular
+                  </button>
+                </div>
               </div>
 
-              {formDiscos.map((disco, idx) => (
-                <div key={idx} className="disc-item-container">
-                  <div className="disc-item-header">
-                    <span className="disc-item-number">Disco #{idx + 1}</span>
-                    <button
-                      type="button"
-                      className="delete-disc-btn"
-                      onClick={() => setFormDiscos(formDiscos.filter((_, i) => i !== idx))}
-                    >
-                      <Trash2 size={16} color={colors.error.text} />
-                    </button>
-                  </div>
-
-                  <label className="input-label">TIPO DE COMPONENTE</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Ex: disco maior, disco menor"
-                    value={disco.tipo_componente}
-                    onChange={(e) => {
-                      const updated = [...formDiscos];
-                      updated[idx].tipo_componente = e.target.value;
-                      setFormDiscos(updated);
-                    }}
-                  />
-
-                  <div className="form-row">
-                    <div className="half-input-container">
-                      <label className="input-label">DIÂMETRO (MM)</label>
-                      <input
-                        type="number"
-                        step="any"
-                        className="input"
-                        placeholder="Ex: 260.00"
-                        value={disco.diametro_mm}
-                        onChange={(e) => {
-                          const updated = [...formDiscos];
-                          updated[idx].diametro_mm = e.target.value;
-                          setFormDiscos(updated);
-                        }}
-                      />
+              {formMaterials.map((link, idx) => {
+                const selectedMat = availableMaterials.find(m => String(m.id) === link.id_materia_prima);
+                return (
+                  <div key={idx} className="disc-item-container" style={{ padding: '12px', marginBottom: '10px' }}>
+                    <div className="disc-item-header" style={{ marginBottom: '8px' }}>
+                      <span className="disc-item-number">Matéria-Prima #{idx + 1}</span>
+                      <button
+                        type="button"
+                        className="delete-disc-btn"
+                        onClick={() => setFormMaterials(formMaterials.filter((_, i) => i !== idx))}
+                      >
+                        <Trash2 size={16} color={colors.error.text} />
+                      </button>
                     </div>
-                    <div className="half-input-container">
-                      <label className="input-label">ALTURA (MM)</label>
-                      <input
-                        type="number"
-                        step="any"
-                        className="input"
-                        placeholder="Ex: 90.00"
-                        value={disco.altura_mm}
-                        onChange={(e) => {
-                          const updated = [...formDiscos];
-                          updated[idx].altura_mm = e.target.value;
-                          setFormDiscos(updated);
-                        }}
-                      />
-                    </div>
-                  </div>
 
-                  <div className="form-row">
-                    <div className="half-input-container">
-                      <label className="input-label">PREÇO DE CUSTO (R$)</label>
-                      <input
-                        type="number"
-                        step="any"
-                        className="input"
-                        placeholder="Ex: 10.00"
-                        value={disco.preco_custo}
-                        onChange={(e) => {
-                          const updated = [...formDiscos];
-                          updated[idx].preco_custo = e.target.value;
-                          setFormDiscos(updated);
-                        }}
-                      />
-                    </div>
-                    <div className="half-input-container">
-                      <label className="input-label">PESO (KG)</label>
-                      <input
-                        type="number"
-                        step="any"
-                        className="input"
-                        placeholder="Ex: 0.350"
-                        value={disco.peso}
-                        onChange={(e) => {
-                          const updated = [...formDiscos];
-                          updated[idx].peso = e.target.value;
-                          setFormDiscos(updated);
-                        }}
-                      />
+                    <div className="form-row">
+                      <div className="half-input-container" style={{ flex: 1.5 }}>
+                        <label className="input-label">SELECIONAR MATÉRIA-PRIMA</label>
+                        <select
+                          className="input"
+                          value={link.id_materia_prima}
+                          onChange={(e) => {
+                            const updated = [...formMaterials];
+                            updated[idx].id_materia_prima = e.target.value;
+                            setFormMaterials(updated);
+                          }}
+                          style={{ width: '100%', height: '40px', padding: '0 8px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                        >
+                          <option value="">-- Escolha --</option>
+                          {availableMaterials.map((mat) => {
+                            const detail = mat.tipo_componente ? ` (${mat.tipo_componente} Ø${Number(mat.diametro_mm)}x${Number(mat.altura_mm)}mm)` : "";
+                            return (
+                              <option key={mat.id} value={mat.id}>
+                                {mat.nome}{detail}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+
+                      <div className="half-input-container" style={{ flex: 0.8 }}>
+                        <label className="input-label">QTD UTILIZADA ({selectedMat ? selectedMat.unidade_medida : '?'})</label>
+                        <input
+                          type="number"
+                          step="any"
+                          className="input"
+                          placeholder="Ex: 0.45"
+                          value={link.quantidade_utilizada}
+                          onChange={(e) => {
+                            const updated = [...formMaterials];
+                            updated[idx].quantidade_utilizada = e.target.value;
+                            setFormMaterials(updated);
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {formError && <p className="form-error-text">{formError}</p>}
             </div>
@@ -882,7 +966,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 className="cancel-button"
                 onClick={() => {
                   setModalVisible(false);
-                  setFormDiscos([]);
+                  setFormMaterials([]);
                   setIsEditing(false);
                   setSelectedProduct(null);
                 }}
@@ -897,6 +981,166 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 disabled={submitting}
               >
                 {submitting ? "..." : (isEditing ? "SALVAR" : "CADASTRAR")}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Quick Create Raw Material Modal */}
+      {rawModalVisible && (
+        <div className="modal-overlay" style={{ zIndex: 110 }}>
+          <form className="modal-content" onSubmit={handleQuickCreateMaterial} style={{ maxHeight: '90vh' }}>
+            <h3 className="modal-title">Cadastrar Matéria-Prima Rápido</h3>
+            
+            <div className="form-scroll">
+              <label className="input-label">NOME *</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: Disco de Alumínio 22cm"
+                value={rawNome}
+                onChange={(e) => setRawNome(e.target.value)}
+                required
+              />
+
+              <label className="input-label">DESCRIÇÃO</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Descrição opcional..."
+                value={rawDescricao}
+                onChange={(e) => setRawDescricao(e.target.value)}
+              />
+
+              <div className="form-row">
+                <div className="half-input-container">
+                  <label className="input-label">UNIDADE DE MEDIDA *</label>
+                  <select
+                    className="input"
+                    value={rawUnidade}
+                    onChange={(e) => setRawUnidade(e.target.value)}
+                    required
+                    style={{ width: '100%', height: '40px', padding: '0 8px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                  >
+                    <option value="kg">kg</option>
+                    <option value="un">un</option>
+                    <option value="m">m</option>
+                    <option value="m²">m²</option>
+                    <option value="L">L</option>
+                    <option value="pç">pç</option>
+                    <option value="cx">cx</option>
+                    <option value="barra">barra</option>
+                    <option value="bobina">bobina</option>
+                    <option value="rolo">rolo</option>
+                  </select>
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">VALOR UNITÁRIO (R$)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input"
+                    placeholder="Ex: 15.50"
+                    value={rawValorUnitario}
+                    onChange={(e) => setRawValorUnitario(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="half-input-container">
+                  <label className="input-label">QUANTIDADE ESTOQUE</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input"
+                    placeholder="Ex: 500"
+                    value={rawEstoque}
+                    onChange={(e) => setRawEstoque(e.target.value)}
+                  />
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">ESTOQUE MÍNIMO</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input"
+                    placeholder="Ex: 100"
+                    value={rawEstoqueMinimo}
+                    onChange={(e) => setRawEstoqueMinimo(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Especificações de Disco/Componente */}
+              <div className="disc-section-header" style={{ marginTop: '15px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+                <span className="disc-section-title" style={{ fontSize: '10px' }}>ESPECIFICAÇÕES DE DISCO (OPCIONAL)</span>
+              </div>
+
+              <label className="input-label">TIPO DE COMPONENTE</label>
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: Disco, Alça, Anel"
+                value={rawTipoComponente}
+                onChange={(e) => setRawTipoComponente(e.target.value)}
+              />
+
+              <div className="form-row">
+                <div className="half-input-container">
+                  <label className="input-label">DIÂMETRO (MM)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input"
+                    placeholder="Ex: 260.00"
+                    value={rawDiametro}
+                    onChange={(e) => setRawDiametro(e.target.value)}
+                  />
+                </div>
+                <div className="half-input-container">
+                  <label className="input-label">ALTURA (MM)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    className="input"
+                    placeholder="Ex: 90.00"
+                    value={rawAltura}
+                    onChange={(e) => setRawAltura(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <label className="input-label">PESO (KG)</label>
+              <input
+                type="number"
+                step="any"
+                className="input"
+                placeholder="Ex: 0.350"
+                value={rawPeso}
+                onChange={(e) => setRawPeso(e.target.value)}
+              />
+
+              {rawError && <p className="form-error-text">{rawError}</p>}
+            </div>
+
+            <div className="button-row">
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => setRawModalVisible(false)}
+                disabled={rawSubmitting}
+              >
+                CANCELAR
+              </button>
+              <button
+                type="submit"
+                className="submit-button"
+                disabled={rawSubmitting}
+                style={{ backgroundColor: '#10b981' }}
+              >
+                {rawSubmitting ? "..." : "CADASTRAR"}
               </button>
             </div>
           </form>

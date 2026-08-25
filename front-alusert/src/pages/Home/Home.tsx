@@ -316,7 +316,9 @@ export default function Home({ onNavigate }: HomeProps) {
                 key={item.id} 
                 className="quick-access-item"
                 onClick={() => {
-                  if (item.title.includes("PRODUTOS") && onNavigate) {
+                  if (item.title.includes("MATÉRIA") && onNavigate) {
+                    onNavigate("MateriasPrimas");
+                  } else if (item.title.includes("PRODUTOS") && onNavigate) {
                     onNavigate("Produtos");
                   } else if (item.title.includes("VENDAS") && onNavigate) {
                     onNavigate("Vendas");

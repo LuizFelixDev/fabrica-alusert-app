@@ -1,74 +1,30 @@
-.produtos-container {
+.materias-primas-container {
   padding: 16px;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-/* Custom Header */
-.header-container {
+.search-bar-container {
+  margin-bottom: 12px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
   background-color: var(--card-background);
-  padding: 15px 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-left: -16px;
-  margin-right: -16px;
-  padding-left: 16px;
-  padding-right: 16px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 14px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-}
-
-.back-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background-color: #f1f5f9;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 12px;
-}
-
-.title-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.header-title {
-  font-size: 20px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
+  font-size: 13px;
   color: var(--text-primary);
-  letter-spacing: -0.5px;
-  margin: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.header-subtitle {
-  font-size: 12px;
+.search-input::placeholder {
   color: var(--text-secondary);
-  margin-top: 2px;
 }
 
-.new-button {
-  background-color: var(--primary);
-  color: #ffffff;
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(241, 142, 4, 0.2);
-}
-
-/* Categories Horizontal Filter */
+/* Category/Filter Horizontal Bar */
 .filters-container {
   margin-bottom: 14px;
 }
@@ -119,8 +75,13 @@
   letter-spacing: 0.5px;
 }
 
-/* Products Card Wrapper */
-.products-card {
+/* Material Card Wrapper */
+.materials-list-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.materials-card {
   background-color: var(--card-background);
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -129,8 +90,8 @@
   flex-direction: column;
 }
 
-/* Product List Item */
-.product-item {
+/* Material List Item */
+.material-item-btn {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -139,20 +100,30 @@
   text-align: left;
   border-bottom: 1px solid var(--border);
   background: none;
+  transition: background-color 0.15s ease;
 }
 
-.product-item:last-child {
+.material-item-btn:last-child {
   border-bottom: none;
 }
 
-.product-details {
-  flex: 1;
-  padding-right: 10px;
-  display: flex;
-  flex-direction: column;
+.material-item-btn:hover {
+  background-color: #f8fafc;
 }
 
-.product-name {
+.material-item-btn:active {
+  transform: none;
+  background-color: #f1f5f9;
+}
+
+.material-details-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-right: 12px;
+}
+
+.material-name {
   font-size: 14px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
@@ -174,29 +145,29 @@
   letter-spacing: 0.5px;
 }
 
-.meta-row {
+.material-meta-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  margin-top: 10px;
-  gap: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.meta-text, .margin-text {
+.material-meta-text {
   font-size: 10px;
   color: var(--text-secondary);
 }
 
-.meta-value {
+.material-meta-val {
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.margin-value {
-  font-weight: 700;
-  color: var(--success);
+.material-meta-val.stock-alert {
+  color: var(--error);
 }
 
-/* Discs */
+/* Spec Badges */
 .specs-container {
   display: flex;
   flex-wrap: wrap;
@@ -210,10 +181,6 @@
   background-color: #f1f5f9;
   padding: 4px 8px;
   border-radius: 6px;
-}
-
-.spec-icon {
-  margin-right: 4px;
 }
 
 .spec-badge-text {
@@ -231,7 +198,7 @@
 }
 
 .price-value {
-  font-size: 16px;
+  font-size: 15px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
   color: var(--text-primary);
@@ -243,22 +210,14 @@
   margin-top: 2px;
 }
 
-/* Modal Overlay */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(10, 10, 10, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 100;
-  padding: 16px;
+/* Details Modal Specifics */
+.details-material-title {
+  font-size: 18px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-/* Modal Content Card */
 .details-modal-content, .modal-content {
   width: 100%;
   max-width: 420px;
@@ -281,14 +240,6 @@
   margin-bottom: 16px;
 }
 
-.details-title, .modal-title {
-  font-size: 18px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
 .close-details-button {
   width: 32px;
   height: 32px;
@@ -306,7 +257,7 @@
   padding-right: 4px;
 }
 
-/* Hide scrollbar */
+/* Scrollbar styling */
 .details-body::-webkit-scrollbar, .form-scroll::-webkit-scrollbar {
   width: 4px;
 }
@@ -327,6 +278,7 @@
   color: var(--text-secondary);
   letter-spacing: 0.5px;
   margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
 .details-desc-text {
@@ -369,61 +321,8 @@
   color: var(--text-primary);
 }
 
-.details-discs-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.details-disc-item {
-  display: flex;
-  align-items: center;
-  background-color: #f1f5f9;
-  padding: 10px;
-  border-radius: 8px;
-}
-
-.details-disc-item-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-/* Footer Buttons */
-.details-footer, .button-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-}
-
-.details-delete-button, .cancel-button {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--error);
-  color: #ffffff;
-  padding: 12px;
-  border-radius: 10px;
-}
-
-.details-edit-button, .submit-button {
-  flex: 1.2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--primary);
-  color: #ffffff;
-  padding: 12px;
-  border-radius: 10px;
-}
-
-.cancel-button {
-  background-color: transparent;
-  color: var(--text-secondary);
-  border: 1px solid #cbd5e1;
+.details-item-value.stock-alert {
+  color: var(--error);
 }
 
 /* Inputs & Form */
@@ -455,126 +354,164 @@
   flex: 1;
 }
 
-.toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 16px;
-  margin-bottom: 16px;
-  padding: 4px 0;
-}
-
-.toggle-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* Checkbox Switch styling */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 44px;
-  height: 24px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #cbd5e1;
-  transition: .3s;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: .3s;
-}
-
-input:checked + .slider {
-  background-color: var(--primary);
-}
-
-input:checked + .slider:before {
-  transform: translateX(20px);
-}
-
-.slider.round {
-  border-radius: 24px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-/* Discs spec section in form */
-.disc-section-header {
+/* Footer Buttons */
+.details-footer, .button-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-top: 20px;
-  margin-bottom: 10px;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 16px;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
 }
 
-.disc-section-title {
+.details-delete-button, .cancel-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 12px;
+  border-radius: 10px;
   font-size: 11px;
   font-family: 'Montserrat', sans-serif;
   font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
 }
 
-.add-disc-button {
+.details-delete-button:hover {
+  background-color: #fca5a5;
+}
+
+.details-edit-button, .submit-button {
+  flex: 1.2;
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--primary);
+  justify-content: center;
+  background-color: var(--primary);
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
   font-size: 11px;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
 }
 
-.disc-item-container {
-  background-color: #f8fafc;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 12px;
+.details-edit-button:hover, .submit-button:hover {
+  background-color: var(--primary-dark);
 }
 
-.disc-item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.disc-item-number {
-  font-size: 10px;
-  font-weight: 600;
+.cancel-button {
+  background-color: transparent;
   color: var(--text-secondary);
+  border: 1px solid #cbd5e1;
+}
+
+.cancel-button:hover {
+  background-color: #f1f5f9;
+}
+
+.submit-button:disabled, .cancel-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-error-banner {
+  display: flex;
+  align-items: center;
+  background-color: var(--error-bg);
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  border: 1px solid #fecaca;
 }
 
 .form-error-text {
-  color: var(--error);
   font-size: 11px;
-  margin-top: 10px;
+  font-weight: 600;
+  color: var(--error);
+}
+
+/* Custom Header layout */
+.header-container {
+  background-color: var(--card-background);
+  padding: 15px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: #f1f5f9;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.back-button:hover {
+  background-color: #e2e8f0;
+}
+
+.title-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title {
+  font-size: 20px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.header-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.new-button {
+  background-color: var(--primary);
+  color: #ffffff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(241, 142, 4, 0.2);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.new-button:hover {
+  background-color: var(--primary-dark);
 }
 
 /* Loader & Status Screens */
@@ -625,48 +562,5 @@ input:checked + .slider:before {
   padding: 10px 20px;
   border-radius: 8px;
   font-size: 12px;
-}
-
-.add-material-quick-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.add-material-quick-btn:hover {
-  background-color: #d1fae5;
-  color: #047857;
-  border-color: #34d399;
-}
-
-.add-material-link-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
-  padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 10px;
-  font-family: 'Montserrat', sans-serif;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
-}
-
-.add-material-link-btn:hover {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-  border-color: #60a5fa;
 }

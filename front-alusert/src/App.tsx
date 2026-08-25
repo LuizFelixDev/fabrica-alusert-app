@@ -3,6 +3,7 @@ import Home from './pages/Home/Home';
 import Produtos from './pages/Produtos/Produtos';
 import Vendas from './pages/Vendas/Vendas';
 import Clientes from './pages/Clientes/Clientes';
+import MateriasPrimas from './pages/MateriasPrimas/MateriasPrimas';
 import AppBar from './components/AppBar/AppBar';
 import BarcodeScanner from './components/BarcodeScanner/BarcodeScanner';
 
@@ -24,6 +25,9 @@ export default function App() {
       )}
       {currentPage === "Clientes" && (
         <Clientes onBack={() => setCurrentPage("Home")} />
+      )}
+      {currentPage === "MateriasPrimas" && (
+        <MateriasPrimas onBack={() => setCurrentPage("Home")} />
       )}
 
       {scannerOpen && (
