@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'logo.png', 'icons.svg'],
+      includeAssets: ['favicon.svg', 'logo.png', 'icons.svg', 'favicon.png'],
       manifest: {
         name: 'Alusert - Fábrica de Alumínio',
         short_name: 'Alusert',
