@@ -9,7 +9,6 @@
   padding: 0 16px;
   flex-shrink: 0;
   padding-top: 8px;
-  margin-left: -60px;
 }
 
 .header-content {
@@ -22,6 +21,7 @@
 .app-logo {
   height: 250px;
   object-fit: contain;
+  margin-left: -60px;
 }
 
 .app-title {
@@ -36,3 +36,27 @@
 .title-orange {
   color: var(--primary);
 }
+
+
+.scan-trigger-btn {
+  margin-left: auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background-color: #fffbe8;
+  border: 1px solid #fde68a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.scan-trigger-btn:hover {
+  background-color: #fef3c7;
+}
+
+.scan-trigger-btn:active {
+  transform: scale(0.95);
+}
+
