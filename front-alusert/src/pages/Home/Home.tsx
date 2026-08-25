@@ -30,6 +30,41 @@ export default function Home({ onNavigate }: HomeProps) {
   const [rawMaterials, setRawMaterials] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
 
+  // PWA Install states and logic
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+      console.log('PWA instalado com sucesso!');
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallAppClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
+
   const getFormattedDate = () => {
     const days = [
       "Domingo",
@@ -215,6 +250,20 @@ export default function Home({ onNavigate }: HomeProps) {
           PAINEL DE <span className="highlight-text">CONTROLE</span>
         </h2>
       </div>
+
+      {/* PWA Install Banner */}
+      {showInstallBtn && (
+        <div className="pwa-install-banner">
+          <div className="pwa-install-icon">📲</div>
+          <div className="pwa-install-info">
+            <span className="pwa-install-title">BAIXAR APLICATIVO</span>
+            <p className="pwa-install-desc">Instale o Alusert para usar em tela cheia e offline.</p>
+          </div>
+          <button className="pwa-install-btn" onClick={handleInstallAppClick}>
+            INSTALAR
+          </button>
+        </div>
+      )}
 
       {loading && (
         <div className="loading-container" style={{ margin: '40px 0' }}>
