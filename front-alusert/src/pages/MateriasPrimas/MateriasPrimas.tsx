@@ -6,10 +6,7 @@ import {
   Trash2, 
   Edit, 
   AlertCircle,
-  Package,
-  Layers,
-  Disc,
-  Info
+  Package
 } from "lucide-react";
 import "./MateriasPrimas.css";
 import colors from "../../constants/colors";
