@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   ChevronLeft, 
+  ChevronRight,
   WifiOff, 
   Package, 
   Disc, 
@@ -57,6 +58,19 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [filters, setFilters] = useState<string[]>(["TODOS"]);
+  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollFilters = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 150;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Modal State
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -396,9 +410,38 @@ export default function Produtos({ onBack }: ProdutosProps) {
     return { bg: "#f1f5f9", text: "#475569" };
   };
 
+  // Filter Products list
   const filteredProducts = selectedFilter === "TODOS"
     ? products
     : products.filter(p => p.categoria?.toUpperCase().trim() === selectedFilter);
+
+  const getNormalizedSize = (product: BackendProduct): number => {
+    if (product.tamanho_numero === null) return 0;
+    const num = Number(product.tamanho_numero);
+    const name = product.nome.toLowerCase();
+    if (name.includes("ml")) {
+      return num;
+    }
+    if (/\d\s*l\b/i.test(name) || name.endsWith("l")) {
+      return num * 1000;
+    }
+    return num;
+  };
+
+  // Sort Products by size (tamanho_numero)
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortOrder === "asc") {
+      if (a.tamanho_numero === null) return 1;
+      if (b.tamanho_numero === null) return -1;
+      return getNormalizedSize(a) - getNormalizedSize(b);
+    }
+    if (sortOrder === "desc") {
+      if (a.tamanho_numero === null) return 1;
+      if (b.tamanho_numero === null) return -1;
+      return getNormalizedSize(b) - getNormalizedSize(a);
+    }
+    return 0;
+  });
 
   return (
     <div className="produtos-container page-content">
@@ -444,8 +487,29 @@ export default function Produtos({ onBack }: ProdutosProps) {
 
       {/* Category filters bar */}
       {!loading && !error && (
-        <div className="filters-container">
-          <div className="filters-scroll">
+        <div className="filters-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {filters.length > 3 && (
+            <>
+              <button 
+                type="button"
+                className="scroll-arrow-btn scroll-arrow-left" 
+                onClick={() => scrollFilters('left')}
+                title="Rolar para esquerda"
+              >
+                <ChevronLeft size={12} color="#64748b" />
+              </button>
+              <button 
+                type="button"
+                className="scroll-arrow-btn scroll-arrow-right" 
+                onClick={() => scrollFilters('right')}
+                title="Rolar para direita"
+              >
+                <ChevronRight size={12} color="#64748b" />
+              </button>
+            </>
+          )}
+
+          <div className="filters-scroll" ref={scrollRef} style={{ width: '100%' }}>
             {filters.map((filter) => {
               const isActive = selectedFilter === filter;
               return (
@@ -478,21 +542,43 @@ export default function Produtos({ onBack }: ProdutosProps) {
         </div>
       ) : (
         <div className="products-list-wrapper">
-          <div className="counter-container">
+          <div className="counter-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="counter-text">
-              {filteredProducts.length} {filteredProducts.length === 1 ? "ITEM" : "ITENS"}
+              {sortedProducts.length} {sortedProducts.length === 1 ? "ITEM" : "ITENS"}
             </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="counter-text" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Ordenar:</span>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--card-background)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="default">Padrão</option>
+                <option value="asc">Tamanho: Menor ao Maior</option>
+                <option value="desc">Tamanho: Maior ao Menor</option>
+              </select>
+            </div>
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {sortedProducts.length === 0 ? (
             <div className="center-container">
               <Package size={40} color={colors.textSecondary} className="empty-icon" />
               <span className="counter-text">Nenhum produto cadastrado nesta categoria.</span>
             </div>
           ) : (
             <div className="products-card">
-              {filteredProducts.map((product, index) => {
-                const isLast = index === filteredProducts.length - 1;
+              {sortedProducts.map((product, index) => {
+                const isLast = index === sortedProducts.length - 1;
                 const tagColors = getTagStyle(product.categoria);
 
                 return (

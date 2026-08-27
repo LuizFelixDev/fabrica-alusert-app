@@ -43,6 +43,10 @@ const colors = {
       icon: '#dc2626',
       bg: '#fef2f2',
     },
+    acessos: {
+      icon: '#0284c7',
+      bg: '#f0f9ff',
+    },
   },
 
   // Bottom Tab Bar

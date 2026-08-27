@@ -14,6 +14,17 @@
   --tab-active: #f18e04;
 }
 
+.dark-mode {
+  --background: #0f172a;
+  --card-background: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: #334155;
+  --success-bg: rgba(22, 163, 74, 0.15);
+  --error-bg: rgba(185, 28, 28, 0.15);
+  --tab-inactive: #94a3b8;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

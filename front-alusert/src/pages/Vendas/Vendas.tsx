@@ -39,6 +39,7 @@ interface Sale {
   nome_usuario: string;
   email_cliente?: string;
   itens?: SaleItem[];
+  data_vencimento_cheque?: string;
 }
 
 interface Client {
@@ -90,6 +91,7 @@ export default function Vendas({ onBack }: VendasProps) {
   const [formSellerId, setFormSellerId] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
   const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("pendente");
+  const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
   const [formItems, setFormItems] = useState<{
     id_produto: string;
     quantidade: string;
@@ -354,6 +356,11 @@ export default function Vendas({ onBack }: VendasProps) {
       }
     }
 
+    if (formPaymentMethod === "Cheque" && !formChequeDueDate) {
+      setFormError("Informe a data de vencimento do cheque.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       setFormError(null);
@@ -363,6 +370,7 @@ export default function Vendas({ onBack }: VendasProps) {
         id_usuario: parseInt(formSellerId),
         forma_pagamento: formPaymentMethod,
         status: formStatus,
+        data_vencimento_cheque: formPaymentMethod === "Cheque" ? formChequeDueDate : undefined,
         itens: formItems.map(item => ({
           id_produto: parseInt(item.id_produto),
           quantidade: parseFloat(item.quantidade),
@@ -386,6 +394,7 @@ export default function Vendas({ onBack }: VendasProps) {
       setFormSellerId("");
       setFormPaymentMethod("Pix");
       setFormStatus("pendente");
+      setFormChequeDueDate("");
       setFormItems([]);
       setModalVisible(false);
       fetchData();
@@ -409,6 +418,20 @@ export default function Vendas({ onBack }: VendasProps) {
     try {
       const date = new Date(dateStr);
       return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) + " às " + date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const formatDateOnly = (dateStr?: string) => {
+    if (!dateStr) return "";
+    try {
+      const cleanDate = dateStr.substring(0, 10);
+      const parts = cleanDate.split("-");
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+      return dateStr;
     } catch {
       return dateStr;
     }
@@ -469,6 +492,7 @@ export default function Vendas({ onBack }: VendasProps) {
           setFormSellerId(sellers.length > 0 ? String(sellers[0].id) : "");
           setFormPaymentMethod("Pix");
           setFormStatus("pendente");
+          setFormChequeDueDate("");
           setFormItems([]);
           setProductSearchTerm("");
           setModalVisible(true);
@@ -623,6 +647,16 @@ export default function Vendas({ onBack }: VendasProps) {
                   </div>
                 </div>
 
+                {selectedSale.forma_pagamento === "Cheque" && selectedSale.data_vencimento_cheque && (
+                  <div className="info-block">
+                    <Calendar size={14} color="#64748b" className="info-icon" />
+                    <div>
+                      <span className="info-label">VENCIMENTO DO CHEQUE</span>
+                      <span className="info-val">{formatDateOnly(selectedSale.data_vencimento_cheque)}</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="info-block">
                   <User size={14} color="#64748b" className="info-icon" />
                   <div>
@@ -766,6 +800,7 @@ export default function Vendas({ onBack }: VendasProps) {
                     <option value="Dinheiro">Dinheiro</option>
                     <option value="Cartão">Cartão</option>
                     <option value="Boleto">Boleto</option>
+                    <option value="Cheque">Cheque</option>
                   </select>
                 </div>
                 <div className="half-input-container">
@@ -782,6 +817,21 @@ export default function Vendas({ onBack }: VendasProps) {
                   </select>
                 </div>
               </div>
+
+              {formPaymentMethod === "Cheque" && (
+                <div className="form-row" style={{ marginTop: '10px' }}>
+                  <div className="half-input-container">
+                    <label className="input-label">VENCIMENTO DO CHEQUE *</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={formChequeDueDate}
+                      onChange={(e) => setFormChequeDueDate(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Pesquisar Produto */}
               <div className="product-search-section" style={{ marginTop: '20px' }}>
