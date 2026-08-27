@@ -369,7 +369,7 @@ export default function Home({ onNavigate }: HomeProps) {
             return (
               <button 
                 key={item.id} 
-                className="quick-access-item"
+                className={`quick-access-item ${item.colorKey}`}
                 onClick={() => {
                   if (item.title.includes("MATÉRIA") && onNavigate) {
                     onNavigate("MateriasPrimas");

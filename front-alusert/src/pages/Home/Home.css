@@ -466,3 +466,50 @@
   background-color: var(--primary-dark);
 }
 
+/* Dark mode custom overrides for Home page */
+.dark-mode .quick-access-item.materiaPrima .quick-access-icon-container {
+  background-color: rgba(37, 99, 235, 0.15) !important;
+}
+.dark-mode .quick-access-item.materiaPrima svg {
+  stroke: #60a5fa !important;
+}
+
+.dark-mode .quick-access-item.produtos .quick-access-icon-container {
+  background-color: rgba(234, 88, 12, 0.15) !important;
+}
+.dark-mode .quick-access-item.produtos svg {
+  stroke: #fb923c !important;
+}
+
+.dark-mode .quick-access-item.vendas .quick-access-icon-container {
+  background-color: rgba(22, 163, 74, 0.15) !important;
+}
+.dark-mode .quick-access-item.vendas svg {
+  stroke: #4ade80 !important;
+}
+
+.dark-mode .quick-access-item.clientes .quick-access-icon-container {
+  background-color: rgba(124, 58, 237, 0.15) !important;
+}
+.dark-mode .quick-access-item.clientes svg {
+  stroke: #c084fc !important;
+}
+
+.dark-mode .quick-access-item.relatorios .quick-access-icon-container {
+  background-color: rgba(220, 38, 38, 0.15) !important;
+}
+.dark-mode .quick-access-item.relatorios svg {
+  stroke: #f87171 !important;
+}
+
+.dark-mode .quick-access-item.acessos .quick-access-icon-container {
+  background-color: rgba(2, 132, 199, 0.15) !important;
+}
+.dark-mode .quick-access-item.acessos svg {
+  stroke: #38bdf8 !important;
+}
+
+.dark-mode .tab-icon-wrapper-active {
+  background-color: rgba(241, 142, 4, 0.15) !important; /* amber/orange tint */
+}
+
