@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   ChevronLeft, 
+  ChevronRight,
   WifiOff, 
   Package, 
   Disc, 
@@ -58,6 +59,18 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [filters, setFilters] = useState<string[]>(["TODOS"]);
   const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollFilters = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 150;
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Modal State
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -474,8 +487,29 @@ export default function Produtos({ onBack }: ProdutosProps) {
 
       {/* Category filters bar */}
       {!loading && !error && (
-        <div className="filters-container">
-          <div className="filters-scroll">
+        <div className="filters-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          {filters.length > 3 && (
+            <>
+              <button 
+                type="button"
+                className="scroll-arrow-btn scroll-arrow-left" 
+                onClick={() => scrollFilters('left')}
+                title="Rolar para esquerda"
+              >
+                <ChevronLeft size={12} color="#64748b" />
+              </button>
+              <button 
+                type="button"
+                className="scroll-arrow-btn scroll-arrow-right" 
+                onClick={() => scrollFilters('right')}
+                title="Rolar para direita"
+              >
+                <ChevronRight size={12} color="#64748b" />
+              </button>
+            </>
+          )}
+
+          <div className="filters-scroll" ref={scrollRef} style={{ width: '100%' }}>
             {filters.map((filter) => {
               const isActive = selectedFilter === filter;
               return (
