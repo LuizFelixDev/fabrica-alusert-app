@@ -402,17 +402,30 @@ export default function Produtos({ onBack }: ProdutosProps) {
     ? products
     : products.filter(p => p.categoria?.toUpperCase().trim() === selectedFilter);
 
+  const getNormalizedSize = (product: BackendProduct): number => {
+    if (product.tamanho_numero === null) return 0;
+    const num = Number(product.tamanho_numero);
+    const name = product.nome.toLowerCase();
+    if (name.includes("ml")) {
+      return num;
+    }
+    if (/\d\s*l\b/i.test(name) || name.endsWith("l")) {
+      return num * 1000;
+    }
+    return num;
+  };
+
   // Sort Products by size (tamanho_numero)
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortOrder === "asc") {
       if (a.tamanho_numero === null) return 1;
       if (b.tamanho_numero === null) return -1;
-      return Number(a.tamanho_numero) - Number(b.tamanho_numero);
+      return getNormalizedSize(a) - getNormalizedSize(b);
     }
     if (sortOrder === "desc") {
       if (a.tamanho_numero === null) return 1;
       if (b.tamanho_numero === null) return -1;
-      return Number(b.tamanho_numero) - Number(a.tamanho_numero);
+      return getNormalizedSize(b) - getNormalizedSize(a);
     }
     return 0;
   });
