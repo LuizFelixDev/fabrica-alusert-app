@@ -27,6 +27,7 @@ interface Product {
   quantidade_estoque: number;
   estoque_minimo: number;
   unidade_medida: string | null;
+  tamanho_numero: number | null;
   peso_kg: number | null;
   preco_custo: number | string | null;
   preco_venda: number | string | null;
@@ -259,13 +260,13 @@ export default function BarcodeScanner({ onClose }: BarcodeScannerProps) {
                     <div className="scanned-grid-item">
                       <span className="scanned-item-label">Estoque Atual</span>
                       <span className="scanned-item-value">
-                        {product.quantidade_estoque} {product.unidade_medida || "un"}
+                        {product.quantidade_estoque} un
                       </span>
                     </div>
                     <div className="scanned-grid-item">
                       <span className="scanned-item-label">Estoque Mínimo</span>
                       <span className="scanned-item-value">
-                        {product.estoque_minimo} {product.unidade_medida || "un"}
+                        {product.estoque_minimo} un
                       </span>
                     </div>
                     <div className="scanned-grid-item">
@@ -300,14 +301,24 @@ export default function BarcodeScanner({ onClose }: BarcodeScannerProps) {
                   </div>
                 </div>
 
-                {product.peso_kg !== null && (
+                {(product.peso_kg !== null || product.tamanho_numero !== null) && (
                   <div className="scanned-section">
-                    <span className="scanned-section-label">MEDIDAS</span>
+                    <span className="scanned-section-label">ESPECIFICAÇÕES DO PRODUTO</span>
                     <div className="scanned-grid">
-                      <div className="scanned-grid-item">
-                        <span className="scanned-item-label">Peso</span>
-                        <span className="scanned-item-value">{product.peso_kg} kg</span>
-                      </div>
+                      {product.tamanho_numero !== null && (
+                        <div className="scanned-grid-item">
+                          <span className="scanned-item-label">Tamanho / Número</span>
+                          <span className="scanned-item-value">
+                            {Number(product.tamanho_numero)}{product.unidade_medida ? ` ${product.unidade_medida}` : ''}
+                          </span>
+                        </div>
+                      )}
+                      {product.peso_kg !== null && (
+                        <div className="scanned-grid-item">
+                          <span className="scanned-item-label">Peso</span>
+                          <span className="scanned-item-value">{Number(product.peso_kg)} kg</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
