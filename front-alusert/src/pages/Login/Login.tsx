@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Lock, Mail, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { ENDPOINTS } from "../../constants/api";
+import logo from "../../assets/logo.png";
 import "./Login.css";
 
 interface LoginProps {
@@ -55,10 +56,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     <div className="login-overlay">
       <div className="login-card">
         <div className="login-header">
-          <div className="login-logo-container">
-            <span className="login-logo-symbol">🛡️</span>
-          </div>
-          <h2 className="login-title">Alusert</h2>
+          <img src={logo} className="login-logo-img" alt="Alusert Logo" />
+          <h2 className="login-title">
+            Alu<span className="title-orange">sert</span>
+          </h2>
           <p className="login-subtitle">Acesse o painel de controle</p>
         </div>
 
