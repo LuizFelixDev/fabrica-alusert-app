@@ -766,6 +766,7 @@ export default function Vendas({ onBack }: VendasProps) {
                     <option value="Dinheiro">Dinheiro</option>
                     <option value="Cartão">Cartão</option>
                     <option value="Boleto">Boleto</option>
+                    <option value="Cheque">Cheque</option>
                   </select>
                 </div>
                 <div className="half-input-container">
