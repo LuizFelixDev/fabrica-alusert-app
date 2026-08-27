@@ -14,8 +14,19 @@ export default function App() {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
   const [currentPage, setCurrentPage] = useState<string>("Home");
   const [scannerOpen, setScannerOpen] = useState<boolean>(false);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => {
+      const next = !prev;
+      localStorage.setItem("theme", next ? "dark" : "light");
+      return next;
+    });
+  };
 
   const handleLogout = () => {
     if (window.confirm("Deseja realmente sair do sistema?")) {
@@ -30,10 +41,12 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${darkMode ? 'dark-mode' : ''}`}>
       <AppBar 
         onScanClick={currentPage === "Home" ? () => setScannerOpen(true) : undefined} 
         onLogoutClick={handleLogout}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
       />
       {currentPage === "Home" && (
         <Home onNavigate={(page) => setCurrentPage(page)} />

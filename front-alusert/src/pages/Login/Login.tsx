@@ -51,8 +51,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   };
 
+  const isDarkMode = localStorage.getItem("theme") === "dark";
+
   return (
-    <div className="login-overlay">
+    <div className={`login-overlay ${isDarkMode ? 'dark-mode' : ''}`}>
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo-container">
