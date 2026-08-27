@@ -51,6 +51,23 @@
   background-color: #1a1a1a !important;
 }
 
+.dark-mode .details-grid-item,
+.dark-mode .details-disc-item {
+  background-color: var(--card-background) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.dark-mode .back-button,
+.dark-mode .close-details-button {
+  background-color: var(--card-background) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.dark-mode .back-button svg,
+.dark-mode .close-details-button svg {
+  stroke: var(--text-primary) !important;
+}
+
 .dark-mode input,
 .dark-mode select,
 .dark-mode textarea {
