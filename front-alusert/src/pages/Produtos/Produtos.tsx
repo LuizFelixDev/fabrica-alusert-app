@@ -57,6 +57,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedFilter, setSelectedFilter] = useState<string>("TODOS");
   const [filters, setFilters] = useState<string[]>(["TODOS"]);
+  const [sortOrder, setSortOrder] = useState<'default' | 'asc' | 'desc'>('default');
 
   // Modal State
   const [modalVisible, setModalVisible] = useState<boolean>(false);
@@ -396,9 +397,25 @@ export default function Produtos({ onBack }: ProdutosProps) {
     return { bg: "#f1f5f9", text: "#475569" };
   };
 
+  // Filter Products list
   const filteredProducts = selectedFilter === "TODOS"
     ? products
     : products.filter(p => p.categoria?.toUpperCase().trim() === selectedFilter);
+
+  // Sort Products by size (tamanho_numero)
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortOrder === "asc") {
+      if (a.tamanho_numero === null) return 1;
+      if (b.tamanho_numero === null) return -1;
+      return Number(a.tamanho_numero) - Number(b.tamanho_numero);
+    }
+    if (sortOrder === "desc") {
+      if (a.tamanho_numero === null) return 1;
+      if (b.tamanho_numero === null) return -1;
+      return Number(b.tamanho_numero) - Number(a.tamanho_numero);
+    }
+    return 0;
+  });
 
   return (
     <div className="produtos-container page-content">
@@ -478,21 +495,43 @@ export default function Produtos({ onBack }: ProdutosProps) {
         </div>
       ) : (
         <div className="products-list-wrapper">
-          <div className="counter-container">
+          <div className="counter-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span className="counter-text">
-              {filteredProducts.length} {filteredProducts.length === 1 ? "ITEM" : "ITENS"}
+              {sortedProducts.length} {sortedProducts.length === 1 ? "ITEM" : "ITENS"}
             </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="counter-text" style={{ fontSize: '9px', textTransform: 'uppercase' }}>Ordenar:</span>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as any)}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--card-background)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '6px',
+                  padding: '2px 6px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="default">Padrão</option>
+                <option value="asc">Tamanho: Menor ao Maior</option>
+                <option value="desc">Tamanho: Maior ao Menor</option>
+              </select>
+            </div>
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {sortedProducts.length === 0 ? (
             <div className="center-container">
               <Package size={40} color={colors.textSecondary} className="empty-icon" />
               <span className="counter-text">Nenhum produto cadastrado nesta categoria.</span>
             </div>
           ) : (
             <div className="products-card">
-              {filteredProducts.map((product, index) => {
-                const isLast = index === filteredProducts.length - 1;
+              {sortedProducts.map((product, index) => {
+                const isLast = index === sortedProducts.length - 1;
                 const tagColors = getTagStyle(product.categoria);
 
                 return (
