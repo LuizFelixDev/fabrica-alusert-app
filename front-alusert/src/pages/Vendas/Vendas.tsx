@@ -858,7 +858,7 @@ export default function Vendas({ onBack }: VendasProps) {
                           <div className="search-result-info">
                             <span className="search-result-name">{prod.nome}</span>
                             <span className="search-result-stock">
-                              Estoque: {prod.quantidade_estoque} {prod.unidade_medida || "un"}
+                               Estoque: {prod.quantidade_estoque} un
                             </span>
                           </div>
                           <span className="search-result-price">{formatPrice(prod.preco_venda)}</span>
@@ -883,7 +883,7 @@ export default function Vendas({ onBack }: VendasProps) {
                       >
                         <span className="quick-add-btn-name">+ {prod.nome}</span>
                         <span className="quick-add-btn-meta">
-                          {formatPrice(prod.preco_venda)} (Estoque: {prod.quantidade_estoque} {prod.unidade_medida || "un"})
+                           {formatPrice(prod.preco_venda)} (Estoque: {prod.quantidade_estoque} un)
                         </span>
                       </button>
                     ))}
@@ -911,7 +911,7 @@ export default function Vendas({ onBack }: VendasProps) {
                       <div key={idx} className="cart-item-row-edit">
                         <div className="cart-item-info-col">
                           <span className="cart-item-name">{selectedProd?.nome || "Carregando..."}</span>
-                          <span className="cart-item-stock-info">Estoque: {selectedProd?.quantidade_estoque} {selectedProd?.unidade_medida || "un"}</span>
+                           <span className="cart-item-stock-info">Estoque: {selectedProd?.quantidade_estoque} un</span>
                         </div>
 
                         <div className="cart-item-controls-col">

@@ -82,7 +82,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [formNome, setFormNome] = useState("");
   const [formCategoria, setFormCategoria] = useState("");
   const [formEstoque, setFormEstoque] = useState("");
-  const [formUnidade, setFormUnidade] = useState("kg");
+  const [formUnidade, setFormUnidade] = useState("");
   const [formPrecoCusto, setFormPrecoCusto] = useState("");
   const [formPrecoVenda, setFormPrecoVenda] = useState("");
   const [formCodigoBarras, setFormCodigoBarras] = useState("");
@@ -295,7 +295,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
       setFormNome("");
       setFormCategoria("");
       setFormEstoque("");
-      setFormUnidade("kg");
+      setFormUnidade("");
       setFormPrecoCusto("");
       setFormPrecoVenda("");
       setFormCodigoBarras("");
@@ -358,7 +358,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
     setFormCodigoBarras(selectedProduct.codigo_barras || "");
     setFormDescricao(selectedProduct.descricao || "");
     setFormCategoria(selectedProduct.categoria || "");
-    setFormUnidade(selectedProduct.unidade_medida || "kg");
+    setFormUnidade(selectedProduct.unidade_medida || "");
     setFormTamanhoNumero(selectedProduct.tamanho_numero !== null ? String(selectedProduct.tamanho_numero) : "");
     setFormPesoKg(selectedProduct.peso_kg !== null ? String(selectedProduct.peso_kg) : "");
     setFormEstoque(String(selectedProduct.quantidade_estoque));
@@ -469,7 +469,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
             setFormNome("");
             setFormCategoria("");
             setFormEstoque("");
-            setFormUnidade("kg");
+            setFormUnidade("");
             setFormPrecoCusto("");
             setFormPrecoVenda("");
             setFormCodigoBarras("");
@@ -603,7 +603,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
                         <span className="meta-text">
                           Estoque:{" "}
                           <span className="meta-value">
-                            {product.quantidade_estoque} {product.unidade_medida || "kg"}
+                            {product.quantidade_estoque} un
                           </span>
                         </span>
                         <span className="margin-text">
@@ -641,7 +641,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
                         {formatPrice(product.preco_venda)}
                       </span>
                       <span className="price-unit">
-                        /{product.unidade_medida || "kg"}
+                        /un
                       </span>
                     </div>
                   </button>
@@ -699,13 +699,13 @@ export default function Produtos({ onBack }: ProdutosProps) {
                   <div className="details-grid-item">
                     <span className="details-item-label">Estoque Atual</span>
                     <span className="details-item-value">
-                      {selectedProduct.quantidade_estoque} {selectedProduct.unidade_medida || "kg"}
+                      {selectedProduct.quantidade_estoque} un
                     </span>
                   </div>
                   <div className="details-grid-item">
                     <span className="details-item-label">Estoque Mínimo</span>
                     <span className="details-item-value">
-                      {selectedProduct.estoque_minimo} {selectedProduct.unidade_medida || "kg"}
+                      {selectedProduct.estoque_minimo} un
                     </span>
                   </div>
                   <div className="details-grid-item">
@@ -752,7 +752,9 @@ export default function Produtos({ onBack }: ProdutosProps) {
                   <div className="details-grid-item">
                     <span className="details-item-label">Tamanho / Número</span>
                     <span className="details-item-value">
-                      {selectedProduct.tamanho_numero !== null ? Number(selectedProduct.tamanho_numero) : "N/A"}
+                      {selectedProduct.tamanho_numero !== null 
+                        ? `${Number(selectedProduct.tamanho_numero)}${selectedProduct.unidade_medida ? ' ' + selectedProduct.unidade_medida : ''}` 
+                        : "N/A"}
                     </span>
                   </div>
                   <div className="details-grid-item">
@@ -864,13 +866,14 @@ export default function Produtos({ onBack }: ProdutosProps) {
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">UNIDADE DE MEDIDA</label>
+                  <label className="input-label">PESO (KG)</label>
                   <input
-                    type="text"
+                    type="number"
+                    step="any"
                     className="input"
-                    placeholder="Ex: kg, un, cm, L"
-                    value={formUnidade}
-                    onChange={(e) => setFormUnidade(e.target.value)}
+                    placeholder="Ex: 0.450"
+                    value={formPesoKg}
+                    onChange={(e) => setFormPesoKg(e.target.value)}
                   />
                 </div>
               </div>
@@ -888,14 +891,13 @@ export default function Produtos({ onBack }: ProdutosProps) {
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">PESO (KG)</label>
+                  <label className="input-label">UNIDADE DO TAMANHO</label>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     className="input"
-                    placeholder="Ex: 0.450"
-                    value={formPesoKg}
-                    onChange={(e) => setFormPesoKg(e.target.value)}
+                    placeholder="Ex: cm, ml, L"
+                    value={formUnidade}
+                    onChange={(e) => setFormUnidade(e.target.value)}
                   />
                 </div>
               </div>
