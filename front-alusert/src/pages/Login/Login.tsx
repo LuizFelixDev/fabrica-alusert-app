@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { Lock, Mail, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, Mail, AlertCircle, Eye, EyeOff, Shield } from "lucide-react";
 import { ENDPOINTS } from "../../constants/api";
-import logo from "../../assets/logo.png";
 import "./Login.css";
 
 interface LoginProps {
@@ -56,7 +55,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     <div className="login-overlay">
       <div className="login-card">
         <div className="login-header">
-          <img src={logo} className="login-logo-img" alt="Alusert Logo" />
+          <div className="login-logo-container">
+            <Shield size={28} color="#f18e04" strokeWidth={2.5} />
+          </div>
           <h2 className="login-title">
             Alu<span className="title-orange">sert</span>
           </h2>

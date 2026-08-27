@@ -31,12 +31,17 @@
   align-items: center;
   margin-bottom: 28px;
 }
-
-.login-logo-img {
-  height: 220px;
-  object-fit: contain;
-  margin-top: -60px;
-  margin-bottom: -50px;
+.login-logo-container {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid rgba(241, 142, 4, 0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(241, 142, 4, 0.08);
+  margin-bottom: 16px;
 }
 
 .login-title {
