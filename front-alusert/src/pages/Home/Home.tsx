@@ -165,6 +165,12 @@ export default function Home({ onNavigate }: HomeProps) {
       icon: FileText,
       colorKey: "relatorios",
     },
+    {
+      id: "6",
+      title: "ACESSOS",
+      icon: UserPlus,
+      colorKey: "acessos",
+    },
   ];
 
   // Helper formatting price
@@ -373,6 +379,8 @@ export default function Home({ onNavigate }: HomeProps) {
                     onNavigate("Vendas");
                   } else if (item.title.includes("CLIENTES") && onNavigate) {
                     onNavigate("Clientes");
+                  } else if (item.title.includes("ACESSOS") && onNavigate) {
+                    onNavigate("Usuarios");
                   }
                 }}
               >

@@ -8,4 +8,5 @@ export const ENDPOINTS = {
   materiasPrimas: `${API_BASE_URL}/materias-primas`,
   vendas: `${API_BASE_URL}/vendas`,
   usuarios: `${API_BASE_URL}/usuarios`,
+  login: `${API_BASE_URL}/usuarios/login`,
 };
