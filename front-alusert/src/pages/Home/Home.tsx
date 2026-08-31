@@ -379,6 +379,8 @@ export default function Home({ onNavigate }: HomeProps) {
                     onNavigate("Vendas");
                   } else if (item.title.includes("CLIENTES") && onNavigate) {
                     onNavigate("Clientes");
+                  } else if (item.title.includes("RELATÓRIOS") && onNavigate) {
+                    onNavigate("Relatorios");
                   } else if (item.title.includes("ACESSOS") && onNavigate) {
                     onNavigate("Usuarios");
                   }
@@ -522,7 +524,10 @@ export default function Home({ onNavigate }: HomeProps) {
 
         <button
           className="tab-item"
-          onClick={() => setActiveTab("relatorios")}
+          onClick={() => {
+            setActiveTab("relatorios");
+            if (onNavigate) onNavigate("Relatorios");
+          }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'relatorios' ? 'tab-icon-wrapper-active' : ''}`}>
             <FileText size={20} color={activeTab === 'relatorios' ? colors.tabBar.active : colors.tabBar.inactive} />

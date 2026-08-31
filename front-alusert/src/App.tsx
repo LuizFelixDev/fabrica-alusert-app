@@ -4,6 +4,7 @@ import Produtos from './pages/Produtos/Produtos';
 import Vendas from './pages/Vendas/Vendas';
 import Clientes from './pages/Clientes/Clientes';
 import MateriasPrimas from './pages/MateriasPrimas/MateriasPrimas';
+import Relatorios from './pages/Relatorios/Relatorios';
 import Login from './pages/Login/Login';
 import Usuarios from './pages/Usuarios/Usuarios';
 import AppBar from './components/AppBar/AppBar';
@@ -62,6 +63,9 @@ export default function App() {
       )}
       {currentPage === "MateriasPrimas" && (
         <MateriasPrimas onBack={() => setCurrentPage("Home")} />
+      )}
+      {currentPage === "Relatorios" && (
+        <Relatorios onBack={() => setCurrentPage("Home")} />
       )}
       {currentPage === "Usuarios" && (
         <Usuarios currentUser={user} onBack={() => setCurrentPage("Home")} />
