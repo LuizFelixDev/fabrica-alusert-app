@@ -11,7 +11,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Edit
 } from "lucide-react";
 import "./Vendas.css";
 import colors from "../../constants/colors";
@@ -86,7 +87,9 @@ export default function Vendas({ onBack }: VendasProps) {
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
-  // Form State for new sale
+  // Form State for new/edit sale
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editingSaleId, setEditingSaleId] = useState<number | null>(null);
   const [formClientId, setFormClientId] = useState<string>("");
   const [formSellerId, setFormSellerId] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
@@ -327,7 +330,34 @@ export default function Vendas({ onBack }: VendasProps) {
     }
   };
 
-  // Handle Form Submission (Create Sale)
+  // Prepare sale editing form
+  const handleEditSale = (sale: Sale) => {
+    setDetailsModalVisible(false);
+
+    setFormClientId(String(sale.id_cliente));
+    setFormSellerId(String(sale.id_usuario));
+    setFormPaymentMethod(sale.forma_pagamento);
+    setFormStatus(sale.status);
+    setFormChequeDueDate(sale.data_vencimento_cheque ? sale.data_vencimento_cheque.substring(0, 10) : "");
+    if (sale.itens && sale.itens.length > 0) {
+      setFormItems(
+        sale.itens.map(item => ({
+          id_produto: String(item.id_produto),
+          quantidade: String(item.quantidade),
+          preco_unitario: String(item.preco_unitario)
+        }))
+      );
+    } else {
+      setFormItems([]);
+    }
+
+    setIsEditing(true);
+    setEditingSaleId(sale.id);
+    setFormError(null);
+    setModalVisible(true);
+  };
+
+  // Handle Form Submission (Create or Edit Sale)
   const handleCreateSale = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formClientId) {
@@ -378,15 +408,20 @@ export default function Vendas({ onBack }: VendasProps) {
         }))
       };
 
-      const res = await fetch(ENDPOINTS.vendas, {
-        method: "POST",
+      const url = isEditing && editingSaleId 
+        ? `${ENDPOINTS.vendas}/${editingSaleId}`
+        : ENDPOINTS.vendas;
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Erro ao criar venda");
+        throw new Error(errData.error || (isEditing ? "Erro ao alterar venda" : "Erro ao criar venda"));
       }
 
       // Reset form
@@ -396,12 +431,14 @@ export default function Vendas({ onBack }: VendasProps) {
       setFormStatus("pendente");
       setFormChequeDueDate("");
       setFormItems([]);
+      setIsEditing(false);
+      setEditingSaleId(null);
       setModalVisible(false);
       fetchData();
-      alert("Venda realizada com sucesso!");
+      alert(isEditing ? "Venda alterada com sucesso!" : "Venda realizada com sucesso!");
     } catch (err: any) {
       console.error(err);
-      setFormError(err.message || "Ocorreu um erro ao registrar a venda.");
+      setFormError(err.message || "Ocorreu um erro ao salvar a venda.");
     } finally {
       setSubmitting(false);
     }
@@ -705,23 +742,15 @@ export default function Vendas({ onBack }: VendasProps) {
               </button>
 
               <div className="action-buttons-group">
-                {selectedSale.status === "pendente" && (
-                  <>
-                    <button
-                      className="status-btn btn-cancelar"
-                      onClick={() => handleUpdateStatus(selectedSale.id, "cancelada")}
-                    >
-                      CANCELAR
-                    </button>
-                    <button
-                      className="status-btn btn-concluir"
-                      onClick={() => handleUpdateStatus(selectedSale.id, "concluída")}
-                    >
-                      CONCLUIR
-                    </button>
-                  </>
-                )}
-                {selectedSale.status === "concluída" && (
+                <button
+                  className="status-btn btn-alterar"
+                  onClick={() => handleEditSale(selectedSale)}
+                >
+                  <Edit size={14} />
+                  ALTERAR
+                </button>
+
+                {(selectedSale.status === "pendente" || selectedSale.status === "concluída") && (
                   <button
                     className="status-btn btn-cancelar"
                     onClick={() => handleUpdateStatus(selectedSale.id, "cancelada")}
@@ -743,11 +772,11 @@ export default function Vendas({ onBack }: VendasProps) {
         </div>
       )}
 
-      {/* Create Sale Modal Form */}
+      {/* Create / Edit Sale Modal Form */}
       {modalVisible && (
         <div className="modal-overlay">
           <form className="modal-content" onSubmit={handleCreateSale}>
-            <h3 className="modal-title">Registrar Venda</h3>
+            <h3 className="modal-title">{isEditing ? `Alterar Venda #${editingSaleId}` : "Registrar Venda"}</h3>
             
             <div className="form-scroll">
               {/* Select Client */}
@@ -1013,7 +1042,7 @@ export default function Vendas({ onBack }: VendasProps) {
                 className="submit-button"
                 disabled={submitting}
               >
-                {submitting ? "..." : "SALVAR VENDA"}
+                {submitting ? "SALVANDO..." : isEditing ? "SALVAR ALTERAÇÕES" : "SALVAR VENDA"}
               </button>
             </div>
           </form>
