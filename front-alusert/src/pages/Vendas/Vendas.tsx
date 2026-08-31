@@ -12,7 +12,8 @@ import {
   Clock,
   XCircle,
   AlertCircle,
-  Edit
+  Edit,
+  Printer
 } from "lucide-react";
 import "./Vendas.css";
 import colors from "../../constants/colors";
@@ -47,6 +48,12 @@ interface Client {
   id: number;
   nome: string;
   cpf_cnpj: string;
+  telefone?: string;
+  email?: string;
+  rua?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
 }
 
 interface Seller {
@@ -85,6 +92,7 @@ export default function Vendas({ onBack }: VendasProps) {
   // Modals visibility
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
+  const [nfModalOpen, setNfModalOpen] = useState<boolean>(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
   // Form State for new/edit sale
@@ -93,7 +101,7 @@ export default function Vendas({ onBack }: VendasProps) {
   const [formClientId, setFormClientId] = useState<string>("");
   const [formSellerId, setFormSellerId] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
-  const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("pendente");
+  const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("concluída");
   const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
   const [formItems, setFormItems] = useState<{
     id_produto: string;
@@ -428,7 +436,7 @@ export default function Vendas({ onBack }: VendasProps) {
       setFormClientId("");
       setFormSellerId("");
       setFormPaymentMethod("Pix");
-      setFormStatus("pendente");
+      setFormStatus("concluída");
       setFormChequeDueDate("");
       setFormItems([]);
       setIsEditing(false);
@@ -528,7 +536,7 @@ export default function Vendas({ onBack }: VendasProps) {
           setFormClientId("");
           setFormSellerId(sellers.length > 0 ? String(sellers[0].id) : "");
           setFormPaymentMethod("Pix");
-          setFormStatus("pendente");
+          setFormStatus("concluída");
           setFormChequeDueDate("");
           setFormItems([]);
           setProductSearchTerm("");
@@ -743,6 +751,14 @@ export default function Vendas({ onBack }: VendasProps) {
 
               <div className="action-buttons-group">
                 <button
+                  className="status-btn btn-nota-fiscal"
+                  onClick={() => setNfModalOpen(true)}
+                >
+                  <Printer size={14} />
+                  GERAR NOTA FISCAL
+                </button>
+
+                <button
                   className="status-btn btn-alterar"
                   onClick={() => handleEditSale(selectedSale)}
                 >
@@ -840,8 +856,8 @@ export default function Vendas({ onBack }: VendasProps) {
                     onChange={(e) => setFormStatus(e.target.value as any)}
                     required
                   >
-                    <option value="pendente">Pendente</option>
                     <option value="concluída">Concluída</option>
+                    <option value="pendente">Pendente</option>
                     <option value="cancelada">Cancelada</option>
                   </select>
                 </div>
@@ -1172,6 +1188,146 @@ export default function Vendas({ onBack }: VendasProps) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Nota Fiscal Printable Modal */}
+      {nfModalOpen && selectedSale && (
+        <div className="modal-overlay no-print-overlay" style={{ zIndex: 300 }}>
+          <div className="nf-modal-content">
+            <div className="nf-modal-header no-print">
+              <h3 className="nf-modal-title">Nota Fiscal de Venda #{selectedSale.id}</h3>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  type="button"
+                  className="nf-print-btn"
+                  onClick={() => window.print()}
+                >
+                  <Printer size={16} /> IMPRIMIR / SALVAR PDF
+                </button>
+                <button 
+                  type="button"
+                  className="close-details-button"
+                  onClick={() => setNfModalOpen(false)}
+                >
+                  <X size={20} color="#64748b" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Document Area */}
+            <div className="printable-nf">
+              {/* Header Company & Doc Title */}
+              <div className="nf-doc-header">
+                <div className="nf-company-info">
+                  <h2 className="nf-company-name">ALUSERT INDÚSTRIA E COMÉRCIO DE ALUMÍNIOS LTDA</h2>
+                  <p className="nf-company-sub">CNPJ: 45.892.103/0001-77 | Inscrição Estadual: 123.456.789</p>
+                  <p className="nf-company-sub">Av. Industrial de Alumínio, Nº 1000 - Distrito Industrial | Fone: (83) 99999-0000</p>
+                </div>
+                <div className="nf-doc-title-box">
+                  <span className="nf-doc-type">COMPROVANTE / NOTA FISCAL</span>
+                  <span className="nf-doc-number">Nº #{selectedSale.id}</span>
+                  <span className="nf-doc-status">STATUS: {selectedSale.status.toUpperCase()}</span>
+                </div>
+              </div>
+
+              {/* Grid Client and Operation */}
+              <div className="nf-grid-details">
+                <div className="nf-box">
+                  <span className="nf-box-title">DESTINATÁRIO / CLIENTE</span>
+                  <p><strong>Nome:</strong> {selectedSale.nome_cliente}</p>
+                  {(() => {
+                    const clientObj = clients.find(c => c.id === selectedSale.id_cliente);
+                    return clientObj ? (
+                      <>
+                        <p><strong>CPF / CNPJ:</strong> {clientObj.cpf_cnpj}</p>
+                        <p><strong>Endereço:</strong> {clientObj.rua}, {clientObj.bairro}{clientObj.cidade ? ` - ${clientObj.cidade}` : ''}{clientObj.estado ? `/${clientObj.estado}` : ''}</p>
+                        {clientObj.telefone && <p><strong>Telefone:</strong> {clientObj.telefone}</p>}
+                      </>
+                    ) : (
+                      <p><strong>CPF/CNPJ:</strong> Cliente Avulso</p>
+                    );
+                  })()}
+                </div>
+
+                <div className="nf-box">
+                  <span className="nf-box-title">DADOS DA OPERAÇÃO</span>
+                  <p><strong>Data da Venda:</strong> {formatDate(selectedSale.data_venda)}</p>
+                  <p><strong>Forma de Pagamento:</strong> {selectedSale.forma_pagamento}</p>
+                  {selectedSale.forma_pagamento === "Cheque" && selectedSale.data_vencimento_cheque && (
+                    <p><strong>Vencimento Cheque:</strong> {formatDateOnly(selectedSale.data_vencimento_cheque)}</p>
+                  )}
+                  <p><strong>Vendedor / Operador:</strong> {selectedSale.nome_usuario}</p>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="nf-items-section">
+                <span className="nf-box-title">DISCRIMINAÇÃO DOS PRODUTOS</span>
+                <table className="nf-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>PRODUTO / DESCRIÇÃO</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>QTD</th>
+                      <th style={{ width: '110px', textAlign: 'right' }}>VALOR UNIT.</th>
+                      <th style={{ width: '120px', textAlign: 'right' }}>VALOR TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedSale.itens && selectedSale.itens.map((item, idx) => {
+                      const subtotal = Number(item.preco_unitario) * item.quantidade;
+                      return (
+                        <tr key={idx}>
+                          <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                          <td><strong>{item.nome_produto}</strong></td>
+                          <td style={{ textAlign: 'center' }}>{item.quantidade}</td>
+                          <td style={{ textAlign: 'right' }}>{formatPrice(item.preco_unitario)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatPrice(subtotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Summary */}
+              <div className="nf-totals-box">
+                <div className="nf-totals-row">
+                  <span>Subtotal Produtos:</span>
+                  <span>{formatPrice(selectedSale.valor_total)}</span>
+                </div>
+                <div className="nf-totals-row">
+                  <span>Descontos / Taxas:</span>
+                  <span>R$ 0,00</span>
+                </div>
+                <div className="nf-totals-row final-total">
+                  <span>VALOR TOTAL DA NOTA:</span>
+                  <span>{formatPrice(selectedSale.valor_total)}</span>
+                </div>
+              </div>
+
+              {/* Declarative Footer */}
+              <div className="nf-declaration-footer">
+                <p className="nf-decl-text">
+                  Recebi(emos) de ALUSERT INDÚSTRIA E COMÉRCIO DE ALUMÍNIOS LTDA os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.
+                </p>
+                <div className="nf-signatures-row">
+                  <div className="nf-sig-box">
+                    <div className="nf-sig-line"></div>
+                    <span>Assinatura do Emissor / Vendedor</span>
+                  </div>
+                  <div className="nf-sig-box">
+                    <div className="nf-sig-line"></div>
+                    <span>Assinatura do Destinatário / Recebedor</span>
+                  </div>
+                </div>
+                <div className="nf-footer-timestamp">
+                  Documento emitido em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')} · Alusert Sistema de Gestão
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
