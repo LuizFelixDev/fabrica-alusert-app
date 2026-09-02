@@ -370,6 +370,25 @@
   background-color: #d97706;
 }
 
+.nf-word-btn {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+}
+
+.nf-word-btn:hover {
+  background-color: #1d4ed8;
+}
+
 .printable-nf {
   padding: 30px;
   background-color: #ffffff;

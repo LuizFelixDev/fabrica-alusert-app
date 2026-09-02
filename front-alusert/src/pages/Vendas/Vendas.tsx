@@ -13,7 +13,8 @@ import {
   XCircle,
   AlertCircle,
   Edit,
-  Printer
+  Printer,
+  FileText
 } from "lucide-react";
 import "./Vendas.css";
 import colors from "../../constants/colors";
@@ -512,6 +513,154 @@ export default function Vendas({ onBack }: VendasProps) {
     .filter(sale => {
       return sale.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase());
     });
+
+  const handleExportWord = (sale: Sale) => {
+    if (!sale) return;
+
+    const clientObj = clients.find((c) => c.id === sale.id_cliente);
+    const clientDetailsHtml = clientObj
+      ? `<p><strong>CPF / CNPJ:</strong> ${clientObj.cpf_cnpj || 'N/A'}</p>
+         <p><strong>Endereço:</strong> ${clientObj.rua || ''}, ${clientObj.bairro || ''}${clientObj.cidade ? ` - ${clientObj.cidade}` : ''}${clientObj.estado ? `/${clientObj.estado}` : ''}</p>
+         ${clientObj.telefone ? `<p><strong>Telefone:</strong> ${clientObj.telefone}</p>` : ''}`
+      : `<p><strong>CPF/CNPJ:</strong> Cliente Avulso</p>`;
+
+    const itemsRowsHtml = (sale.itens || [])
+      .map((item, idx) => {
+        const subtotal = Number(item.preco_unitario) * item.quantidade;
+        return `
+          <tr>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${idx + 1}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;"><strong>${item.nome_produto}</strong></td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${item.quantidade}</td>
+            <td style="text-align: right; border: 1px solid #cbd5e1; padding: 8px;">${formatPrice(item.preco_unitario)}</td>
+            <td style="text-align: right; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px;">${formatPrice(subtotal)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const wordContent = `
+      <html xmlns:o='urn:schemas-microsoft-microsoft-com:office:office'
+            xmlns:w='urn:schemas-microsoft-microsoft-com:office:word'
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Nota Fiscal #${sale.id}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; margin: 30px; color: #0f172a; }
+          h2 { font-size: 18pt; margin: 0 0 6px 0; color: #0f172a; font-weight: bold; }
+          p { font-size: 10pt; margin: 3px 0; color: #334155; }
+          .header-box { width: 100%; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+          .title-type { font-size: 14pt; font-weight: bold; color: #f18e04; }
+          .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .grid-cell { width: 50%; vertical-align: top; padding: 12px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
+          .box-title { font-weight: bold; font-size: 11pt; color: #0f172a; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+          table.items { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+          table.items th { background-color: #0f172a; color: #ffffff; padding: 10px; font-size: 10pt; border: 1px solid #0f172a; text-align: left; }
+          .totals-box { width: 100%; margin-top: 15px; text-align: right; }
+          .totals-row { font-size: 11pt; margin: 4px 0; }
+          .final-total { font-size: 14pt; font-weight: bold; color: #f18e04; margin-top: 8px; }
+          .declaration { margin-top: 40px; padding: 15px; border: 1px dashed #cbd5e1; background-color: #f8fafc; font-size: 9pt; }
+          .sig-table { width: 100%; margin-top: 50px; text-align: center; }
+          .sig-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 5px auto; }
+        </style>
+      </head>
+      <body>
+        <div class="header-box">
+          <table style="width:100%;">
+            <tr>
+              <td style="vertical-align:top;">
+                <h2>ALUSERT ALUMÍNIO</h2>
+                <p><strong>CNPJ:</strong> 65.660.929/0001-92</p>
+                <p><strong>Localização:</strong> Sítio Baldinho | <strong>Fone:</strong> (83) 9677-6431</p>
+              </td>
+              <td style="vertical-align:top; text-align:right;">
+                <div class="title-type">COMPROVANTE / NOTA FISCAL</div>
+                <p style="font-size:12pt; font-weight:bold;">Nº #${sale.id}</p>
+                <p><strong>Status:</strong> ${sale.status.toUpperCase()}</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <table class="grid-table">
+          <tr>
+            <td class="grid-cell" style="padding-right: 10px;">
+              <div class="box-title">DESTINATÁRIO / CLIENTE</div>
+              <p><strong>Nome:</strong> ${sale.nome_cliente}</p>
+              ${clientDetailsHtml}
+            </td>
+            <td class="grid-cell" style="padding-left: 10px;">
+              <div class="box-title">DADOS DA OPERAÇÃO</div>
+              <p><strong>Data da Venda:</strong> ${formatDate(sale.data_venda)}</p>
+              <p><strong>Forma de Pagamento:</strong> ${sale.forma_pagamento}</p>
+              ${sale.forma_pagamento === "Cheque" && sale.data_vencimento_cheque ? `<p><strong>Vencimento Cheque:</strong> ${formatDateOnly(sale.data_vencimento_cheque)}</p>` : ''}
+              <p><strong>Vendedor / Operador:</strong> ${sale.nome_usuario}</p>
+            </td>
+          </tr>
+        </table>
+
+        <div class="box-title" style="margin-top: 20px;">DISCRIMINAÇÃO DOS PRODUTOS</div>
+        <table class="items">
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>PRODUTO / DESCRIÇÃO</th>
+              <th style="width: 70px; text-align: center;">QTD</th>
+              <th style="width: 110px; text-align: right;">VALOR UNIT.</th>
+              <th style="width: 120px; text-align: right;">VALOR TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRowsHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-box">
+          <div class="totals-row">Subtotal Produtos: ${formatPrice(sale.valor_total)}</div>
+          <div class="totals-row">Descontos / Taxas: R$ 0,00</div>
+          <div class="final-total">VALOR TOTAL DA NOTA: ${formatPrice(sale.valor_total)}</div>
+        </div>
+
+        <div class="declaration">
+          <p>Recebi(emos) de ALUSERT ALUMÍNIO os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.</p>
+        </div>
+
+        <table class="sig-table">
+          <tr>
+            <td style="width: 50%;">
+              <div class="sig-line"></div>
+              <p>Assinatura do Emissor / Vendedor</p>
+            </td>
+            <td style="width: 50%;">
+              <div class="sig-line"></div>
+              <p>Assinatura do Destinatário / Recebedor</p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="font-size: 8pt; color: #94a3b8; text-align: center; margin-top: 30px;">
+          Documento emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} · Alusert Sistema de Gestão
+        </p>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\ufeff", wordContent], {
+      type: "application/msword",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const sanitizedClient = sale.nome_cliente
+      ? sale.nome_cliente.toLowerCase().replace(/[^a-z0-9]/gi, "_")
+      : "cliente";
+    link.href = url;
+    link.download = `nota_fiscal_${sale.id}_${sanitizedClient}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="vendas-container page-content">
@@ -1203,7 +1352,14 @@ export default function Vendas({ onBack }: VendasProps) {
                   className="nf-print-btn"
                   onClick={() => window.print()}
                 >
-                  <Printer size={16} /> IMPRIMIR / SALVAR PDF
+                  <Printer size={16} /> SALVAR EM PDF / IMPRIMIR
+                </button>
+                <button 
+                  type="button"
+                  className="nf-word-btn"
+                  onClick={() => handleExportWord(selectedSale)}
+                >
+                  <FileText size={16} /> SALVAR EM WORD
                 </button>
                 <button 
                   type="button"
@@ -1220,9 +1376,9 @@ export default function Vendas({ onBack }: VendasProps) {
               {/* Header Company & Doc Title */}
               <div className="nf-doc-header">
                 <div className="nf-company-info">
-                  <h2 className="nf-company-name">ALUSERT INDÚSTRIA E COMÉRCIO DE ALUMÍNIOS LTDA</h2>
-                  <p className="nf-company-sub">CNPJ: 45.892.103/0001-77 | Inscrição Estadual: 123.456.789</p>
-                  <p className="nf-company-sub">Av. Industrial de Alumínio, Nº 1000 - Distrito Industrial | Fone: (83) 99999-0000</p>
+                  <h2 className="nf-company-name">ALUSERT ALUMÍNIO</h2>
+                  <p className="nf-company-sub">CNPJ: 65.660.929/0001-92</p>
+                  <p className="nf-company-sub">Localização: Sítio Baldinho | Fone: (83) 9677-6431</p>
                 </div>
                 <div className="nf-doc-title-box">
                   <span className="nf-doc-type">COMPROVANTE / NOTA FISCAL</span>
@@ -1310,7 +1466,7 @@ export default function Vendas({ onBack }: VendasProps) {
               {/* Declarative Footer */}
               <div className="nf-declaration-footer">
                 <p className="nf-decl-text">
-                  Recebi(emos) de ALUSERT INDÚSTRIA E COMÉRCIO DE ALUMÍNIOS LTDA os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.
+                  Recebi(emos) de ALUSERT ALUMÍNIO os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.
                 </p>
                 <div className="nf-signatures-row">
                   <div className="nf-sig-box">
