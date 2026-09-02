@@ -1,0 +1,104 @@
+.barcode-card-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background-color: #ffffff;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dark-mode .barcode-card-container {
+  background-color: #ffffff; /* Barcode images need white background for legibility */
+  border-color: #cbd5e1;
+}
+
+.barcode-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.barcode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.barcode-value-text {
+  font-family: monospace, monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0f172a;
+  letter-spacing: 0.5px;
+}
+
+.barcode-preview-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+  padding: 8px 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+}
+
+.barcode-canvas-preview {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.barcode-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background-color: var(--primary, #f18e04);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.barcode-download-button:hover {
+  background-color: var(--primary-dark, #d97706);
+}
+
+.barcode-download-button:active {
+  transform: scale(0.98);
+}
+
+.barcode-card-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background-color: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.dark-mode .barcode-card-empty {
+  background-color: rgba(255, 255, 255, 0.04);
+  border-color: #334155;
+  color: #94a3b8;
+}

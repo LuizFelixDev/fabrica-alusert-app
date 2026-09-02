@@ -4,6 +4,7 @@ import { X, Search, WifiOff, AlertTriangle, Disc } from "lucide-react";
 import "./BarcodeScanner.css";
 import { ENDPOINTS } from "../../constants/api";
 import colors from "../../constants/colors";
+import { BarcodeCard } from "../BarcodeCard/BarcodeCard";
 
 interface ProductMateriaPrima {
   link_id?: number;
@@ -349,6 +350,16 @@ export default function BarcodeScanner({ onClose }: BarcodeScannerProps) {
                     </div>
                   </div>
                 )}
+
+                {/* Código de Barras */}
+                <div className="scanned-section">
+                  <span className="scanned-section-label">CÓDIGO DE BARRAS</span>
+                  <BarcodeCard
+                    barcodeValue={product.codigo_barras}
+                    productName={product.nome}
+                    showDownloadButton={true}
+                  />
+                </div>
               </div>
 
               {/* Scan Another Button */}
