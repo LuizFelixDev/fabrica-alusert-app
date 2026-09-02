@@ -8,11 +8,15 @@ import {
   Trash2, 
   Edit, 
   X,
-  PlusCircle
+  PlusCircle,
+  Download,
+  Barcode
 } from "lucide-react";
 import "./Produtos.css";
 import colors from "../../constants/colors";
 import { ENDPOINTS } from "../../constants/api";
+import { BarcodeCard } from "../../components/BarcodeCard/BarcodeCard";
+import { downloadBarcodeImage } from "../../utils/barcode";
 
 interface ProductMateriaPrima {
   link_id?: number;
@@ -643,6 +647,19 @@ export default function Produtos({ onBack }: ProdutosProps) {
                       <span className="price-unit">
                         /un
                       </span>
+                      {product.codigo_barras && (
+                        <button
+                          type="button"
+                          className="quick-barcode-btn"
+                          title="Baixar Código de Barras"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadBarcodeImage(product.codigo_barras!, product.nome);
+                          }}
+                        >
+                          <Barcode size={18} />
+                        </button>
+                      )}
                     </div>
                   </button>
                 );
@@ -792,6 +809,15 @@ export default function Produtos({ onBack }: ProdutosProps) {
                   </div>
                 </div>
               )}
+              {/* Código de Barras */}
+              <div className="details-section">
+                <span className="details-section-label">CÓDIGO DE BARRAS</span>
+                <BarcodeCard
+                  barcodeValue={selectedProduct.codigo_barras}
+                  productName={selectedProduct.nome}
+                  showDownloadButton={true}
+                />
+              </div>
             </div>
 
             {/* Footer Buttons */}
@@ -803,6 +829,17 @@ export default function Produtos({ onBack }: ProdutosProps) {
                 <Trash2 size={16} style={{ marginRight: '6px' }} />
                 EXCLUIR
               </button>
+
+              {selectedProduct.codigo_barras && (
+                <button
+                  type="button"
+                  className="details-barcode-button"
+                  onClick={() => downloadBarcodeImage(selectedProduct.codigo_barras!, selectedProduct.nome)}
+                >
+                  <Download size={16} style={{ marginRight: '6px' }} />
+                  BAIXAR CÓDIGO
+                </button>
+              )}
 
               <button
                 className="details-edit-button"

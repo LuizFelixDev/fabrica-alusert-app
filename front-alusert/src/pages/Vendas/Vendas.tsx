@@ -11,7 +11,10 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Printer,
+  FileText
 } from "lucide-react";
 import "./Vendas.css";
 import colors from "../../constants/colors";
@@ -46,6 +49,12 @@ interface Client {
   id: number;
   nome: string;
   cpf_cnpj: string;
+  telefone?: string;
+  email?: string;
+  rua?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
 }
 
 interface Seller {
@@ -84,13 +93,16 @@ export default function Vendas({ onBack }: VendasProps) {
   // Modals visibility
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
+  const [nfModalOpen, setNfModalOpen] = useState<boolean>(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
 
-  // Form State for new sale
+  // Form State for new/edit sale
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editingSaleId, setEditingSaleId] = useState<number | null>(null);
   const [formClientId, setFormClientId] = useState<string>("");
   const [formSellerId, setFormSellerId] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
-  const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("pendente");
+  const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("concluída");
   const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
   const [formItems, setFormItems] = useState<{
     id_produto: string;
@@ -327,7 +339,34 @@ export default function Vendas({ onBack }: VendasProps) {
     }
   };
 
-  // Handle Form Submission (Create Sale)
+  // Prepare sale editing form
+  const handleEditSale = (sale: Sale) => {
+    setDetailsModalVisible(false);
+
+    setFormClientId(String(sale.id_cliente));
+    setFormSellerId(String(sale.id_usuario));
+    setFormPaymentMethod(sale.forma_pagamento);
+    setFormStatus(sale.status);
+    setFormChequeDueDate(sale.data_vencimento_cheque ? sale.data_vencimento_cheque.substring(0, 10) : "");
+    if (sale.itens && sale.itens.length > 0) {
+      setFormItems(
+        sale.itens.map(item => ({
+          id_produto: String(item.id_produto),
+          quantidade: String(item.quantidade),
+          preco_unitario: String(item.preco_unitario)
+        }))
+      );
+    } else {
+      setFormItems([]);
+    }
+
+    setIsEditing(true);
+    setEditingSaleId(sale.id);
+    setFormError(null);
+    setModalVisible(true);
+  };
+
+  // Handle Form Submission (Create or Edit Sale)
   const handleCreateSale = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formClientId) {
@@ -378,30 +417,37 @@ export default function Vendas({ onBack }: VendasProps) {
         }))
       };
 
-      const res = await fetch(ENDPOINTS.vendas, {
-        method: "POST",
+      const url = isEditing && editingSaleId 
+        ? `${ENDPOINTS.vendas}/${editingSaleId}`
+        : ENDPOINTS.vendas;
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Erro ao criar venda");
+        throw new Error(errData.error || (isEditing ? "Erro ao alterar venda" : "Erro ao criar venda"));
       }
 
       // Reset form
       setFormClientId("");
       setFormSellerId("");
       setFormPaymentMethod("Pix");
-      setFormStatus("pendente");
+      setFormStatus("concluída");
       setFormChequeDueDate("");
       setFormItems([]);
+      setIsEditing(false);
+      setEditingSaleId(null);
       setModalVisible(false);
       fetchData();
-      alert("Venda realizada com sucesso!");
+      alert(isEditing ? "Venda alterada com sucesso!" : "Venda realizada com sucesso!");
     } catch (err: any) {
       console.error(err);
-      setFormError(err.message || "Ocorreu um erro ao registrar a venda.");
+      setFormError(err.message || "Ocorreu um erro ao salvar a venda.");
     } finally {
       setSubmitting(false);
     }
@@ -468,6 +514,154 @@ export default function Vendas({ onBack }: VendasProps) {
       return sale.nome_cliente.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
+  const handleExportWord = (sale: Sale) => {
+    if (!sale) return;
+
+    const clientObj = clients.find((c) => c.id === sale.id_cliente);
+    const clientDetailsHtml = clientObj
+      ? `<p><strong>CPF / CNPJ:</strong> ${clientObj.cpf_cnpj || 'N/A'}</p>
+         <p><strong>Endereço:</strong> ${clientObj.rua || ''}, ${clientObj.bairro || ''}${clientObj.cidade ? ` - ${clientObj.cidade}` : ''}${clientObj.estado ? `/${clientObj.estado}` : ''}</p>
+         ${clientObj.telefone ? `<p><strong>Telefone:</strong> ${clientObj.telefone}</p>` : ''}`
+      : `<p><strong>CPF/CNPJ:</strong> Cliente Avulso</p>`;
+
+    const itemsRowsHtml = (sale.itens || [])
+      .map((item, idx) => {
+        const subtotal = Number(item.preco_unitario) * item.quantidade;
+        return `
+          <tr>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${idx + 1}</td>
+            <td style="border: 1px solid #cbd5e1; padding: 8px;"><strong>${item.nome_produto}</strong></td>
+            <td style="text-align: center; border: 1px solid #cbd5e1; padding: 8px;">${item.quantidade}</td>
+            <td style="text-align: right; border: 1px solid #cbd5e1; padding: 8px;">${formatPrice(item.preco_unitario)}</td>
+            <td style="text-align: right; font-weight: bold; border: 1px solid #cbd5e1; padding: 8px;">${formatPrice(subtotal)}</td>
+          </tr>
+        `;
+      })
+      .join("");
+
+    const wordContent = `
+      <html xmlns:o='urn:schemas-microsoft-microsoft-com:office:office'
+            xmlns:w='urn:schemas-microsoft-microsoft-com:office:word'
+            xmlns='http://www.w3.org/TR/REC-html40'>
+      <head>
+        <meta charset='utf-8'>
+        <title>Nota Fiscal #${sale.id}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; margin: 30px; color: #0f172a; }
+          h2 { font-size: 18pt; margin: 0 0 6px 0; color: #0f172a; font-weight: bold; }
+          p { font-size: 10pt; margin: 3px 0; color: #334155; }
+          .header-box { width: 100%; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+          .title-type { font-size: 14pt; font-weight: bold; color: #f18e04; }
+          .grid-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          .grid-cell { width: 50%; vertical-align: top; padding: 12px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
+          .box-title { font-weight: bold; font-size: 11pt; color: #0f172a; text-transform: uppercase; margin-bottom: 8px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; }
+          table.items { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }
+          table.items th { background-color: #0f172a; color: #ffffff; padding: 10px; font-size: 10pt; border: 1px solid #0f172a; text-align: left; }
+          .totals-box { width: 100%; margin-top: 15px; text-align: right; }
+          .totals-row { font-size: 11pt; margin: 4px 0; }
+          .final-total { font-size: 14pt; font-weight: bold; color: #f18e04; margin-top: 8px; }
+          .declaration { margin-top: 40px; padding: 15px; border: 1px dashed #cbd5e1; background-color: #f8fafc; font-size: 9pt; }
+          .sig-table { width: 100%; margin-top: 50px; text-align: center; }
+          .sig-line { border-top: 1px solid #000; width: 80%; margin: 0 auto 5px auto; }
+        </style>
+      </head>
+      <body>
+        <div class="header-box">
+          <table style="width:100%;">
+            <tr>
+              <td style="vertical-align:top;">
+                <h2>ALUSERT ALUMÍNIO</h2>
+                <p><strong>CNPJ:</strong> 65.660.929/0001-92</p>
+                <p><strong>Localização:</strong> Sítio Baldinho | <strong>Fone:</strong> (83) 9677-6431</p>
+              </td>
+              <td style="vertical-align:top; text-align:right;">
+                <div class="title-type">COMPROVANTE / NOTA FISCAL</div>
+                <p style="font-size:12pt; font-weight:bold;">Nº #${sale.id}</p>
+                <p><strong>Status:</strong> ${sale.status.toUpperCase()}</p>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <table class="grid-table">
+          <tr>
+            <td class="grid-cell" style="padding-right: 10px;">
+              <div class="box-title">DESTINATÁRIO / CLIENTE</div>
+              <p><strong>Nome:</strong> ${sale.nome_cliente}</p>
+              ${clientDetailsHtml}
+            </td>
+            <td class="grid-cell" style="padding-left: 10px;">
+              <div class="box-title">DADOS DA OPERAÇÃO</div>
+              <p><strong>Data da Venda:</strong> ${formatDate(sale.data_venda)}</p>
+              <p><strong>Forma de Pagamento:</strong> ${sale.forma_pagamento}</p>
+              ${sale.forma_pagamento === "Cheque" && sale.data_vencimento_cheque ? `<p><strong>Vencimento Cheque:</strong> ${formatDateOnly(sale.data_vencimento_cheque)}</p>` : ''}
+              <p><strong>Vendedor / Operador:</strong> ${sale.nome_usuario}</p>
+            </td>
+          </tr>
+        </table>
+
+        <div class="box-title" style="margin-top: 20px;">DISCRIMINAÇÃO DOS PRODUTOS</div>
+        <table class="items">
+          <thead>
+            <tr>
+              <th style="width: 40px; text-align: center;">#</th>
+              <th>PRODUTO / DESCRIÇÃO</th>
+              <th style="width: 70px; text-align: center;">QTD</th>
+              <th style="width: 110px; text-align: right;">VALOR UNIT.</th>
+              <th style="width: 120px; text-align: right;">VALOR TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRowsHtml}
+          </tbody>
+        </table>
+
+        <div class="totals-box">
+          <div class="totals-row">Subtotal Produtos: ${formatPrice(sale.valor_total)}</div>
+          <div class="totals-row">Descontos / Taxas: R$ 0,00</div>
+          <div class="final-total">VALOR TOTAL DA NOTA: ${formatPrice(sale.valor_total)}</div>
+        </div>
+
+        <div class="declaration">
+          <p>Recebi(emos) de ALUSERT ALUMÍNIO os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.</p>
+        </div>
+
+        <table class="sig-table">
+          <tr>
+            <td style="width: 50%;">
+              <div class="sig-line"></div>
+              <p>Assinatura do Emissor / Vendedor</p>
+            </td>
+            <td style="width: 50%;">
+              <div class="sig-line"></div>
+              <p>Assinatura do Destinatário / Recebedor</p>
+            </td>
+          </tr>
+        </table>
+
+        <p style="font-size: 8pt; color: #94a3b8; text-align: center; margin-top: 30px;">
+          Documento emitido em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')} · Alusert Sistema de Gestão
+        </p>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(["\ufeff", wordContent], {
+      type: "application/msword",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const sanitizedClient = sale.nome_cliente
+      ? sale.nome_cliente.toLowerCase().replace(/[^a-z0-9]/gi, "_")
+      : "cliente";
+    link.href = url;
+    link.download = `nota_fiscal_${sale.id}_${sanitizedClient}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="vendas-container page-content">
       {/* Header */}
@@ -491,7 +685,7 @@ export default function Vendas({ onBack }: VendasProps) {
           setFormClientId("");
           setFormSellerId(sellers.length > 0 ? String(sellers[0].id) : "");
           setFormPaymentMethod("Pix");
-          setFormStatus("pendente");
+          setFormStatus("concluída");
           setFormChequeDueDate("");
           setFormItems([]);
           setProductSearchTerm("");
@@ -705,23 +899,23 @@ export default function Vendas({ onBack }: VendasProps) {
               </button>
 
               <div className="action-buttons-group">
-                {selectedSale.status === "pendente" && (
-                  <>
-                    <button
-                      className="status-btn btn-cancelar"
-                      onClick={() => handleUpdateStatus(selectedSale.id, "cancelada")}
-                    >
-                      CANCELAR
-                    </button>
-                    <button
-                      className="status-btn btn-concluir"
-                      onClick={() => handleUpdateStatus(selectedSale.id, "concluída")}
-                    >
-                      CONCLUIR
-                    </button>
-                  </>
-                )}
-                {selectedSale.status === "concluída" && (
+                <button
+                  className="status-btn btn-nota-fiscal"
+                  onClick={() => setNfModalOpen(true)}
+                >
+                  <Printer size={14} />
+                  GERAR NOTA FISCAL
+                </button>
+
+                <button
+                  className="status-btn btn-alterar"
+                  onClick={() => handleEditSale(selectedSale)}
+                >
+                  <Edit size={14} />
+                  ALTERAR
+                </button>
+
+                {(selectedSale.status === "pendente" || selectedSale.status === "concluída") && (
                   <button
                     className="status-btn btn-cancelar"
                     onClick={() => handleUpdateStatus(selectedSale.id, "cancelada")}
@@ -743,11 +937,11 @@ export default function Vendas({ onBack }: VendasProps) {
         </div>
       )}
 
-      {/* Create Sale Modal Form */}
+      {/* Create / Edit Sale Modal Form */}
       {modalVisible && (
         <div className="modal-overlay">
           <form className="modal-content" onSubmit={handleCreateSale}>
-            <h3 className="modal-title">Registrar Venda</h3>
+            <h3 className="modal-title">{isEditing ? `Alterar Venda #${editingSaleId}` : "Registrar Venda"}</h3>
             
             <div className="form-scroll">
               {/* Select Client */}
@@ -811,8 +1005,8 @@ export default function Vendas({ onBack }: VendasProps) {
                     onChange={(e) => setFormStatus(e.target.value as any)}
                     required
                   >
-                    <option value="pendente">Pendente</option>
                     <option value="concluída">Concluída</option>
+                    <option value="pendente">Pendente</option>
                     <option value="cancelada">Cancelada</option>
                   </select>
                 </div>
@@ -1013,7 +1207,7 @@ export default function Vendas({ onBack }: VendasProps) {
                 className="submit-button"
                 disabled={submitting}
               >
-                {submitting ? "..." : "SALVAR VENDA"}
+                {submitting ? "SALVANDO..." : isEditing ? "SALVAR ALTERAÇÕES" : "SALVAR VENDA"}
               </button>
             </div>
           </form>
@@ -1143,6 +1337,153 @@ export default function Vendas({ onBack }: VendasProps) {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Nota Fiscal Printable Modal */}
+      {nfModalOpen && selectedSale && (
+        <div className="modal-overlay no-print-overlay" style={{ zIndex: 300 }}>
+          <div className="nf-modal-content">
+            <div className="nf-modal-header no-print">
+              <h3 className="nf-modal-title">Nota Fiscal de Venda #{selectedSale.id}</h3>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <button 
+                  type="button"
+                  className="nf-print-btn"
+                  onClick={() => window.print()}
+                >
+                  <Printer size={16} /> SALVAR EM PDF / IMPRIMIR
+                </button>
+                <button 
+                  type="button"
+                  className="nf-word-btn"
+                  onClick={() => handleExportWord(selectedSale)}
+                >
+                  <FileText size={16} /> SALVAR EM WORD
+                </button>
+                <button 
+                  type="button"
+                  className="close-details-button"
+                  onClick={() => setNfModalOpen(false)}
+                >
+                  <X size={20} color="#64748b" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Document Area */}
+            <div className="printable-nf">
+              {/* Header Company & Doc Title */}
+              <div className="nf-doc-header">
+                <div className="nf-company-info">
+                  <h2 className="nf-company-name">ALUSERT ALUMÍNIO</h2>
+                  <p className="nf-company-sub">CNPJ: 65.660.929/0001-92</p>
+                  <p className="nf-company-sub">Localização: Sítio Baldinho | Fone: (83) 9677-6431</p>
+                </div>
+                <div className="nf-doc-title-box">
+                  <span className="nf-doc-type">COMPROVANTE / NOTA FISCAL</span>
+                  <span className="nf-doc-number">Nº #{selectedSale.id}</span>
+                  <span className="nf-doc-status">STATUS: {selectedSale.status.toUpperCase()}</span>
+                </div>
+              </div>
+
+              {/* Grid Client and Operation */}
+              <div className="nf-grid-details">
+                <div className="nf-box">
+                  <span className="nf-box-title">DESTINATÁRIO / CLIENTE</span>
+                  <p><strong>Nome:</strong> {selectedSale.nome_cliente}</p>
+                  {(() => {
+                    const clientObj = clients.find(c => c.id === selectedSale.id_cliente);
+                    return clientObj ? (
+                      <>
+                        <p><strong>CPF / CNPJ:</strong> {clientObj.cpf_cnpj}</p>
+                        <p><strong>Endereço:</strong> {clientObj.rua}, {clientObj.bairro}{clientObj.cidade ? ` - ${clientObj.cidade}` : ''}{clientObj.estado ? `/${clientObj.estado}` : ''}</p>
+                        {clientObj.telefone && <p><strong>Telefone:</strong> {clientObj.telefone}</p>}
+                      </>
+                    ) : (
+                      <p><strong>CPF/CNPJ:</strong> Cliente Avulso</p>
+                    );
+                  })()}
+                </div>
+
+                <div className="nf-box">
+                  <span className="nf-box-title">DADOS DA OPERAÇÃO</span>
+                  <p><strong>Data da Venda:</strong> {formatDate(selectedSale.data_venda)}</p>
+                  <p><strong>Forma de Pagamento:</strong> {selectedSale.forma_pagamento}</p>
+                  {selectedSale.forma_pagamento === "Cheque" && selectedSale.data_vencimento_cheque && (
+                    <p><strong>Vencimento Cheque:</strong> {formatDateOnly(selectedSale.data_vencimento_cheque)}</p>
+                  )}
+                  <p><strong>Vendedor / Operador:</strong> {selectedSale.nome_usuario}</p>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <div className="nf-items-section">
+                <span className="nf-box-title">DISCRIMINAÇÃO DOS PRODUTOS</span>
+                <table className="nf-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>#</th>
+                      <th>PRODUTO / DESCRIÇÃO</th>
+                      <th style={{ width: '70px', textAlign: 'center' }}>QTD</th>
+                      <th style={{ width: '110px', textAlign: 'right' }}>VALOR UNIT.</th>
+                      <th style={{ width: '120px', textAlign: 'right' }}>VALOR TOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedSale.itens && selectedSale.itens.map((item, idx) => {
+                      const subtotal = Number(item.preco_unitario) * item.quantidade;
+                      return (
+                        <tr key={idx}>
+                          <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                          <td><strong>{item.nome_produto}</strong></td>
+                          <td style={{ textAlign: 'center' }}>{item.quantidade}</td>
+                          <td style={{ textAlign: 'right' }}>{formatPrice(item.preco_unitario)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatPrice(subtotal)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Totals Summary */}
+              <div className="nf-totals-box">
+                <div className="nf-totals-row">
+                  <span>Subtotal Produtos:</span>
+                  <span>{formatPrice(selectedSale.valor_total)}</span>
+                </div>
+                <div className="nf-totals-row">
+                  <span>Descontos / Taxas:</span>
+                  <span>R$ 0,00</span>
+                </div>
+                <div className="nf-totals-row final-total">
+                  <span>VALOR TOTAL DA NOTA:</span>
+                  <span>{formatPrice(selectedSale.valor_total)}</span>
+                </div>
+              </div>
+
+              {/* Declarative Footer */}
+              <div className="nf-declaration-footer">
+                <p className="nf-decl-text">
+                  Recebi(emos) de ALUSERT ALUMÍNIO os produtos constantes nesta Nota Fiscal de Venda em perfeitas condições.
+                </p>
+                <div className="nf-signatures-row">
+                  <div className="nf-sig-box">
+                    <div className="nf-sig-line"></div>
+                    <span>Assinatura do Emissor / Vendedor</span>
+                  </div>
+                  <div className="nf-sig-box">
+                    <div className="nf-sig-line"></div>
+                    <span>Assinatura do Destinatário / Recebedor</span>
+                  </div>
+                </div>
+                <div className="nf-footer-timestamp">
+                  Documento emitido em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')} · Alusert Sistema de Gestão
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

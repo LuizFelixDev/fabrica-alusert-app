@@ -701,3 +701,63 @@ input:checked + .slider:before {
 .scroll-arrow-right {
   right: -8px;
 }
+
+/* Barcode Quick Actions & Details Button */
+.details-barcode-button {
+  flex: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.details-barcode-button:hover {
+  background-color: #1e293b;
+}
+
+.details-barcode-button:active {
+  transform: scale(0.98);
+}
+
+.quick-barcode-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background-color: #f8fafc;
+  color: #334155;
+  margin-top: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-barcode-btn:hover {
+  background-color: var(--primary, #f18e04);
+  color: #ffffff;
+  border-color: var(--primary, #f18e04);
+  transform: scale(1.05);
+}
+
+.dark-mode .quick-barcode-btn {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .quick-barcode-btn:hover {
+  background-color: var(--primary, #f18e04);
+  color: #ffffff;
+  border-color: var(--primary, #f18e04);
+}
+
