@@ -230,7 +230,7 @@ export default function Vendas({ onBack }: VendasProps) {
         (p.codigo_barras && p.codigo_barras.toLowerCase().includes(productSearchTerm.toLowerCase()))
       );
 
-  const quickAddProducts = products.filter(p => p.quantidade_estoque > 0);
+  const quickAddProducts = products;
 
   // Fetch all necessary data
   const fetchData = async () => {
@@ -1041,23 +1041,25 @@ export default function Vendas({ onBack }: VendasProps) {
                   
                   {searchedProducts.length > 0 && (
                     <div className="search-results-dropdown">
-                      {searchedProducts.map(prod => (
-                        <button
-                          type="button"
-                          key={prod.id}
-                          className="search-result-row"
-                          onClick={() => handleAddProductToCart(prod)}
-                          disabled={prod.quantidade_estoque <= 0 && formStatus !== 'cancelada'}
-                        >
-                          <div className="search-result-info">
-                            <span className="search-result-name">{prod.nome}</span>
-                            <span className="search-result-stock">
-                               Estoque: {prod.quantidade_estoque} un
-                            </span>
-                          </div>
-                          <span className="search-result-price">{formatPrice(prod.preco_venda)}</span>
-                        </button>
-                      ))}
+                      {searchedProducts.map(prod => {
+                        const isZeroStock = prod.quantidade_estoque <= 0;
+                        return (
+                          <button
+                            type="button"
+                            key={prod.id}
+                            className="search-result-row"
+                            onClick={() => handleAddProductToCart(prod)}
+                          >
+                            <div className="search-result-info">
+                              <span className="search-result-name">{prod.nome}</span>
+                              <span className={`search-result-stock ${isZeroStock ? 'zero-stock-text' : ''}`}>
+                                {isZeroStock ? `⚠️ Sem Estoque (${prod.quantidade_estoque} un) - A Fabricar` : `Estoque: ${prod.quantidade_estoque} un`}
+                              </span>
+                            </div>
+                            <span className="search-result-price">{formatPrice(prod.preco_venda)}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -1068,22 +1070,24 @@ export default function Vendas({ onBack }: VendasProps) {
                 <div className="quick-add-section">
                   <span className="quick-add-title">Adicionar Rapidamente:</span>
                   <div className="quick-add-chips">
-                    {quickAddProducts.map(prod => (
-                      <button
-                        type="button"
-                        key={prod.id}
-                        className="quick-add-chip-btn"
-                        onClick={() => handleAddProductToCart(prod)}
-                      >
-                        <span className="quick-add-btn-name">+ {prod.nome}</span>
-                        <span className="quick-add-btn-meta">
-                           {formatPrice(prod.preco_venda)} (Estoque: {prod.quantidade_estoque} un)
-                        </span>
-                      </button>
-                    ))}
+                    {quickAddProducts.map(prod => {
+                      const isZeroStock = prod.quantidade_estoque <= 0;
+                      return (
+                        <button
+                          type="button"
+                          key={prod.id}
+                          className={`quick-add-chip-btn ${isZeroStock ? 'chip-zero-stock' : ''}`}
+                          onClick={() => handleAddProductToCart(prod)}
+                        >
+                          <span className="quick-add-btn-name">+ {prod.nome}</span>
+                          <span className="quick-add-btn-meta">
+                            {formatPrice(prod.preco_venda)} ({isZeroStock ? 'A Fabricar' : `Estoque: ${prod.quantidade_estoque} un`})
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
-
               )}
 
               {/* Sale Items Section (Cart) */}
@@ -1093,19 +1097,31 @@ export default function Vendas({ onBack }: VendasProps) {
 
               {formItems.length === 0 ? (
                 <div className="empty-cart-message">
-                  <span>Nenhum produto adicionado. Use a pesquisa acima ou clique em "Mais Vendidos" para adicionar itens rapidamente.</span>
+                  <span>Nenhum produto adicionado. Use a pesquisa acima ou os atalhos rápidos para adicionar itens.</span>
                 </div>
               ) : (
                 <div className="cart-items-list">
                   {formItems.map((item, idx) => {
                     const selectedProd = products.find(p => p.id === parseInt(item.id_produto));
-                    const itemSubtotal = (parseFloat(item.quantidade) || 0) * (parseFloat(item.preco_unitario) || 0);
+                    const qtyVal = parseFloat(item.quantidade) || 0;
+                    const stockVal = selectedProd?.quantidade_estoque || 0;
+                    const pendingQty = Math.max(0, qtyVal - stockVal);
+                    const itemSubtotal = qtyVal * (parseFloat(item.preco_unitario) || 0);
 
                     return (
                       <div key={idx} className="cart-item-row-edit">
                         <div className="cart-item-info-col">
-                          <span className="cart-item-name">{selectedProd?.nome || "Carregando..."}</span>
-                           <span className="cart-item-stock-info">Estoque: {selectedProd?.quantidade_estoque} un</span>
+                          <div>
+                            <span className="cart-item-name">{selectedProd?.nome || "Carregando..."}</span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                              <span className="cart-item-stock-info">Estoque atual: {stockVal} un</span>
+                              {pendingQty > 0 && (
+                                <span className="cart-item-pending-badge">
+                                  ⚠️ Fabricação Pendente: {pendingQty} un
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="cart-item-controls-col">
