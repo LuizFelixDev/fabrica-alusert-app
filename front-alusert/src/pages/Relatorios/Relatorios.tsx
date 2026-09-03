@@ -313,8 +313,9 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
     });
 
     const stockQty = Number(prod.quantidade_estoque || 0);
-    // Demanda de fabricação: quantidade vendida excedendo o estoque atual
-    const qtdPendenteFabricar = Math.max(0, totalVendida - stockQty);
+    const qtyAFazer = Number(prod.quantidade_a_fazer || 0);
+    // Demanda de fabricação: quantidade a fazer registrada no atributo ou excedente de vendas
+    const qtdPendenteFabricar = Math.max(qtyAFazer, Math.max(0, totalVendida - stockQty));
 
     return {
       id_produto: prod.id,
