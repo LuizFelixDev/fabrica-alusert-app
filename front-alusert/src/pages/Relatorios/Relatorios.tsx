@@ -313,9 +313,9 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
     });
 
     const stockQty = Number(prod.quantidade_estoque || 0);
-    const qtyAFazer = Number(prod.quantidade_a_fazer || 0);
-    // Demanda de fabricação: quantidade a fazer registrada no atributo ou excedente de vendas
-    const qtdPendenteFabricar = Math.max(qtyAFazer, Math.max(0, totalVendida - stockQty));
+    // Demanda de fabricação: unidades vendidas que superaram o estoque disponível
+    const initialAvailableStock = Math.max(0, stockQty + totalVendida);
+    const qtdPendenteFabricar = Math.max(0, totalVendida - initialAvailableStock);
 
     return {
       id_produto: prod.id,
@@ -329,9 +329,9 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
     };
   });
 
-  // Demandas de fabricação (produtos pendentes de produção)
+  // Demandas de fabricação (apenas produtos com vendas ativas > 0 e que necessitam de produção)
   const productsPendingFabrication = stockReportList
-    .filter(item => item.qtd_pendente_fabricar > 0 || (item.quantidade_vendida > 0 && item.quantidade_estoque === 0))
+    .filter(item => item.quantidade_vendida > 0 && item.qtd_pendente_fabricar > 0)
     .sort((a, b) => b.qtd_pendente_fabricar - a.qtd_pendente_fabricar);
 
   const totalUnitsToManufacture = productsPendingFabrication.reduce((acc, item) => acc + item.qtd_pendente_fabricar, 0);
@@ -859,7 +859,7 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <span className="pending-fabrication-highlight">
-                            ⚡ {item.qtd_pendente_fabricar > 0 ? item.qtd_pendente_fabricar : item.quantidade_vendida} un
+                            ⚡ {item.qtd_pendente_fabricar} un
                           </span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
