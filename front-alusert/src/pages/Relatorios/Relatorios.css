@@ -714,3 +714,143 @@
   color: var(--text-secondary);
   font-size: 13px;
 }
+
+/* Stock & Manufacturing Demand Styles */
+.stock-status-chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.stock-status-chip.zero {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.stock-status-chip.low {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.pending-fabrication-highlight {
+  font-size: 13px;
+  font-weight: 800;
+  color: #b45309;
+  background-color: #fef3c7;
+  border: 1px solid #fcd34d;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.priority-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.priority-badge.urgent {
+  background-color: #ef4444;
+  color: #ffffff;
+}
+
+.kpi-badge.warning {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+/* Rankings Grid Layout */
+.rankings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.rankings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ranking-item-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 14px;
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  gap: 12px;
+  transition: transform 0.15s ease;
+}
+
+.ranking-item-row:hover {
+  transform: translateX(4px);
+}
+
+.ranking-number {
+  font-size: 14px;
+  font-weight: 800;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ranking-number.gold {
+  background-color: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fcd34d;
+}
+
+.ranking-number.silver {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+.ranking-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.ranking-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ranking-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.ranking-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.ranking-tag.top {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.ranking-tag.low {
+  background-color: #f3e8ff;
+  color: #6b21a8;
+}
+

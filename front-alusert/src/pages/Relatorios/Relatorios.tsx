@@ -13,7 +13,10 @@ import {
   Layers,
   ShoppingBag,
   FileSpreadsheet,
-  CheckCircle2
+  CheckCircle2,
+  Factory,
+  PackageCheck,
+  Flame
 } from "lucide-react";
 import "./Relatorios.css";
 import { ENDPOINTS } from "../../constants/api";
@@ -45,7 +48,7 @@ interface ItemReport {
 
 export default function Relatorios({ onBack }: RelatoriosProps) {
   // Navigation view: 'hub' | 'vendas' | 'estoque'
-  const [activeView, setActiveView] = useState<'hub' | 'vendas'>('hub');
+  const [activeView, setActiveView] = useState<'hub' | 'vendas' | 'estoque'>('hub');
 
   // Loading and Data States
   const [loading, setLoading] = useState<boolean>(true);
@@ -292,6 +295,58 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
   const margemLucroReal = totalFaturamento > 0 ? (totalLucroReal / totalFaturamento) * 100 : 0;
   const isLoss = totalLucroReal < 0;
 
+  // Build Stock & Production Demand Data
+  const stockReportList = products.map((prod) => {
+    let totalVendida = 0;
+    let faturamentoTotal = 0;
+
+    sales.forEach((sale) => {
+      if (sale.status === 'cancelada' || !sale.itens) return;
+      sale.itens.forEach((it: any) => {
+        if (it.id_produto === prod.id) {
+          const qty = Number(it.quantidade || 0);
+          const price = Number(it.preco_unitario || 0);
+          totalVendida += qty;
+          faturamentoTotal += qty * price;
+        }
+      });
+    });
+
+    const stockQty = Number(prod.quantidade_estoque || 0);
+    // Demanda de fabricação: quantidade vendida excedendo o estoque atual
+    const qtdPendenteFabricar = Math.max(0, totalVendida - stockQty);
+
+    return {
+      id_produto: prod.id,
+      nome_produto: prod.nome,
+      categoria: prod.categoria || "Geral",
+      quantidade_estoque: stockQty,
+      preco_venda: Number(prod.preco_venda || 0),
+      quantidade_vendida: totalVendida,
+      faturamento_total: faturamentoTotal,
+      qtd_pendente_fabricar: qtdPendenteFabricar
+    };
+  });
+
+  // Demandas de fabricação (produtos pendentes de produção)
+  const productsPendingFabrication = stockReportList
+    .filter(item => item.qtd_pendente_fabricar > 0 || (item.quantidade_vendida > 0 && item.quantidade_estoque === 0))
+    .sort((a, b) => b.qtd_pendente_fabricar - a.qtd_pendente_fabricar);
+
+  const totalUnitsToManufacture = productsPendingFabrication.reduce((acc, item) => acc + item.qtd_pendente_fabricar, 0);
+
+  // Produtos com estoque baixo (<= 5 unidades)
+  const lowStockProducts = stockReportList
+    .filter(item => item.quantidade_estoque <= 5)
+    .sort((a, b) => a.quantidade_estoque - b.quantidade_estoque);
+
+  // Produtos mais vendidos
+  const topSellersList = [...stockReportList].sort((a, b) => b.quantidade_vendida - a.quantidade_vendida);
+  const topSellerProduct = topSellersList.length > 0 && topSellersList[0].quantidade_vendida > 0 ? topSellersList[0] : null;
+
+  // Produtos menos vendidos (baixa saída)
+  const leastSellersList = [...stockReportList].sort((a, b) => a.quantidade_vendida - b.quantidade_vendida);
+
   // Add Expense Handler
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +386,7 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
           <button 
             className="back-btn" 
             onClick={() => {
-              if (activeView === 'vendas') {
+              if (activeView === 'vendas' || activeView === 'estoque') {
                 setActiveView('hub');
               } else if (onBack) {
                 onBack();
@@ -342,10 +397,10 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
           </button>
           <div>
             <h2 className="relatorios-title">
-              {activeView === 'vendas' ? "RELATÓRIO FINANCEIRO & VENDAS" : "CENTRAL DE RELATÓRIOS"}
+              {activeView === 'vendas' ? "RELATÓRIO FINANCEIRO & VENDAS" : activeView === 'estoque' ? "RELATÓRIO DE ESTOQUE & FABRICAÇÃO" : "CENTRAL DE RELATÓRIOS"}
             </h2>
             <span className="relatorios-subtitle">
-              {activeView === 'vendas' ? "Controle de Faturamento, Custos e Lucro Real" : "Selecione o módulo de relatório"}
+              {activeView === 'vendas' ? "Controle de Faturamento, Custos e Lucro Real" : activeView === 'estoque' ? "Demandas de Produção, Baixo Estoque e Rotatividade de Produtos" : "Selecione o módulo de relatório"}
             </span>
           </div>
         </div>
@@ -382,21 +437,18 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
           </div>
 
           <div className="hub-cards-grid">
-            {/* Card 1: Estoque (Left side / Inactive as requested) */}
+            {/* Card 1: Estoque (Active) */}
             <div 
-              className="hub-card disabled" 
-              title="Relatório de Estoque (Em breve)"
-              onClick={() => {
-                // Audio directive: "você só vai botar o botão, mas quando eu clicar no botão não vai acontecer nada"
-              }}
+              className="hub-card" 
+              onClick={() => setActiveView('estoque')}
             >
-              <span className="hub-badge hub-badge-soon">Em Breve</span>
+              <span className="hub-badge hub-badge-active">Disponível</span>
               <div className="hub-card-icon-wrapper">
                 <Package size={36} />
               </div>
               <h3 className="hub-card-title">RELATÓRIO DE ESTOQUE</h3>
               <p className="hub-card-desc">
-                Análise de matérias-primas, balanço físico, curva ABC de peças e rotatividade de estoque.
+                Demandas de fabricação (produtos a fabricar), produtos com baixo estoque e rotatividade (mais e menos vendidos).
               </p>
             </div>
 
@@ -698,6 +750,239 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* STOCK & MANUFACTURING REPORT VIEW */}
+      {activeView === 'estoque' && (
+        <div className="report-content">
+          {/* Top Stock KPI Cards */}
+          <div className="kpi-grid">
+            <div className="kpi-card faturamento" style={{ borderLeftColor: '#f59e0b' }}>
+              <div className="kpi-card-header">
+                <span className="kpi-label">DEMANDAS A FABRICAR</span>
+                <Factory size={18} color="#f59e0b" />
+              </div>
+              <span className="kpi-value" style={{ color: '#d97706' }}>
+                {totalUnitsToManufacture.toLocaleString('pt-BR')} un
+              </span>
+              <span className="kpi-subtext">
+                {productsPendingFabrication.length} {productsPendingFabrication.length === 1 ? 'produto pendente' : 'produtos pendentes'}
+              </span>
+            </div>
+
+            <div className="kpi-card custo-producao" style={{ borderLeftColor: '#ef4444' }}>
+              <div className="kpi-card-header">
+                <span className="kpi-label">BAIXO ESTOQUE</span>
+                <AlertTriangle size={18} color="#ef4444" />
+              </div>
+              <span className="kpi-value" style={{ color: '#dc2626' }}>
+                {lowStockProducts.length} itens
+              </span>
+              <span className="kpi-subtext">Estoque zerado ou crítico</span>
+            </div>
+
+            <div className="kpi-card lucro-bruto" style={{ borderLeftColor: '#10b981' }}>
+              <div className="kpi-card-header">
+                <span className="kpi-label">MAIS VENDIDO (LÍDER)</span>
+                <Flame size={18} color="#10b981" />
+              </div>
+              <span className="kpi-value" style={{ fontSize: '16px', color: '#059669' }}>
+                {topSellerProduct ? topSellerProduct.nome_produto : 'Nenhum'}
+              </span>
+              <span className="kpi-subtext">
+                {topSellerProduct ? `${topSellerProduct.quantidade_vendida} un vendidas` : 'Sem vendas'}
+              </span>
+            </div>
+
+            <div className="kpi-card gastos-extras" style={{ borderLeftColor: '#6366f1' }}>
+              <div className="kpi-card-header">
+                <span className="kpi-label">TOTAL PRODUTOS</span>
+                <Package size={18} color="#6366f1" />
+              </div>
+              <span className="kpi-value" style={{ color: '#4f46e5' }}>
+                {products.length} cadastrados
+              </span>
+              <span className="kpi-subtext">Catálogo da fábrica</span>
+            </div>
+          </div>
+
+          {/* SECTION 1: DEMANDAS DE FABRICAÇÃO (PRODUTOS A FABRICAR) */}
+          <div className="report-section">
+            <div className="section-top-bar">
+              <div className="section-title-wrapper">
+                <Factory size={20} color="#f59e0b" />
+                <h3 className="section-heading">DEMANDAS DE FABRICAÇÃO (PRODUTOS A FABRICAR)</h3>
+                <span className="section-count-badge" style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#d97706' }}>
+                  {productsPendingFabrication.length} PRODUTOS
+                </span>
+              </div>
+            </div>
+
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Relação de produtos cujas vendas superam o estoque disponível no momento da venda (ou com estoque zerado), necessitando de fabricação para atendimento.
+            </p>
+
+            {productsPendingFabrication.length === 0 ? (
+              <div className="empty-state">
+                <PackageCheck size={36} color="#10b981" style={{ marginBottom: '8px', opacity: 0.8 }} />
+                <p>Nenhuma pendência de fabricação no momento! Todo o estoque atende às vendas registradas.</p>
+              </div>
+            ) : (
+              <div className="items-table-container">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>PRODUTO / PANELAS</th>
+                      <th style={{ textAlign: 'center' }}>QTD VENDIDA</th>
+                      <th style={{ textAlign: 'center' }}>ESTOQUE ATUAL</th>
+                      <th style={{ textAlign: 'center' }}>PENDENTE A FABRICAR</th>
+                      <th style={{ textAlign: 'center' }}>PRIORIDADE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productsPendingFabrication.map(item => (
+                      <tr key={item.id_produto}>
+                        <td>
+                          <div className="product-cell-name">{item.nome_produto}</div>
+                          <div className="product-cell-cat">{item.categoria}</div>
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: '700' }}>
+                          {item.quantidade_vendida} un
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className={`stock-status-chip ${item.quantidade_estoque === 0 ? 'zero' : 'low'}`}>
+                            {item.quantidade_estoque} un
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="pending-fabrication-highlight">
+                            ⚡ {item.qtd_pendente_fabricar > 0 ? item.qtd_pendente_fabricar : item.quantidade_vendida} un
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className="priority-badge urgent">ALTA PRIORIDADE</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 2: PRODUTOS EM BAIXO ESTOQUE */}
+          <div className="report-section">
+            <div className="section-top-bar">
+              <div className="section-title-wrapper">
+                <AlertTriangle size={20} color="#ef4444" />
+                <h3 className="section-heading">PRODUTOS COM ESTOQUE CRÍTICO / BAIXO ESTOQUE</h3>
+                <span className="section-count-badge" style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' }}>
+                  {lowStockProducts.length} ITENS
+                </span>
+              </div>
+            </div>
+
+            {lowStockProducts.length === 0 ? (
+              <div className="empty-state">
+                <CheckCircle2 size={36} color="#10b981" style={{ marginBottom: '8px', opacity: 0.8 }} />
+                <p>Todos os produtos estão com níveis saudáveis de estoque.</p>
+              </div>
+            ) : (
+              <div className="items-table-container">
+                <table className="items-table">
+                  <thead>
+                    <tr>
+                      <th>PRODUTO</th>
+                      <th style={{ textAlign: 'center' }}>ESTOQUE ATUAL</th>
+                      <th style={{ textAlign: 'right' }}>PREÇO DE VENDA</th>
+                      <th style={{ textAlign: 'center' }}>STATUS ESTOQUE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lowStockProducts.map(item => (
+                      <tr key={item.id_produto}>
+                        <td>
+                          <div className="product-cell-name">{item.nome_produto}</div>
+                          <div className="product-cell-cat">{item.categoria}</div>
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: '700' }}>
+                          <span className={`stock-status-chip ${item.quantidade_estoque === 0 ? 'zero' : 'low'}`}>
+                            {item.quantidade_estoque} un
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontWeight: '600' }}>
+                          {formatMoney(item.preco_venda)}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <span className={`kpi-badge ${item.quantidade_estoque === 0 ? 'loss' : 'warning'}`}>
+                            {item.quantidade_estoque === 0 ? 'ESTOQUE ZERADO' : 'BAIXO ESTOQUE'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* SECTION 3: TOP VENDIDOS vs MENOS VENDIDOS GRID */}
+          <div className="rankings-grid">
+            {/* Top Sellers */}
+            <div className="report-section" style={{ margin: 0 }}>
+              <div className="section-top-bar">
+                <div className="section-title-wrapper">
+                  <Flame size={20} color="#10b981" />
+                  <h3 className="section-heading">PRODUTOS MAIS VENDIDOS</h3>
+                </div>
+              </div>
+
+              {topSellersList.length === 0 ? (
+                <div className="empty-state"><p>Sem histórico de vendas.</p></div>
+              ) : (
+                <div className="rankings-list">
+                  {topSellersList.slice(0, 5).map((item, idx) => (
+                    <div key={item.id_produto} className="ranking-item-row">
+                      <div className="ranking-number gold">#{idx + 1}</div>
+                      <div className="ranking-info">
+                        <span className="ranking-name">{item.nome_produto}</span>
+                        <span className="ranking-sub">{item.quantidade_vendida} un vendidas • {formatMoney(item.faturamento_total)}</span>
+                      </div>
+                      <div className="ranking-tag top">🔥 Mais Vendido</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Least Sellers */}
+            <div className="report-section" style={{ margin: 0 }}>
+              <div className="section-top-bar">
+                <div className="section-title-wrapper">
+                  <TrendingDown size={20} color="#8b5cf6" />
+                  <h3 className="section-heading">PRODUTOS MENOS VENDIDOS</h3>
+                </div>
+              </div>
+
+              {leastSellersList.length === 0 ? (
+                <div className="empty-state"><p>Sem dados de produtos.</p></div>
+              ) : (
+                <div className="rankings-list">
+                  {leastSellersList.slice(0, 5).map((item, idx) => (
+                    <div key={item.id_produto} className="ranking-item-row">
+                      <div className="ranking-number silver">#{idx + 1}</div>
+                      <div className="ranking-info">
+                        <span className="ranking-name">{item.nome_produto}</span>
+                        <span className="ranking-sub">{item.quantidade_vendida} un vendidas • Estoque: {item.quantidade_estoque} un</span>
+                      </div>
+                      <div className="ranking-tag low">📉 Menos Vendido</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
