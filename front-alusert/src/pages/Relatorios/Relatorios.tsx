@@ -313,9 +313,9 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
     });
 
     const stockQty = Number(prod.quantidade_estoque || 0);
-    // Demanda de fabricação: unidades vendidas que superaram o estoque disponível
-    const initialAvailableStock = Math.max(0, stockQty + totalVendida);
-    const qtdPendenteFabricar = Math.max(0, totalVendida - initialAvailableStock);
+    // Demanda de fabricação só existe se houver vendas ativas (> 0) excedendo o estoque que existia antes das vendas
+    const preSaleStock = Math.max(0, stockQty + totalVendida);
+    const qtdPendenteFabricar = totalVendida > 0 ? Math.max(0, totalVendida - preSaleStock) : 0;
 
     return {
       id_produto: prod.id,
@@ -329,7 +329,7 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
     };
   });
 
-  // Demandas de fabricação (apenas produtos com vendas ativas > 0 e que necessitam de produção)
+  // Demandas de fabricação (apenas produtos com vendas ativas > 0 E pendência real > 0)
   const productsPendingFabrication = stockReportList
     .filter(item => item.quantidade_vendida > 0 && item.qtd_pendente_fabricar > 0)
     .sort((a, b) => b.qtd_pendente_fabricar - a.qtd_pendente_fabricar);
