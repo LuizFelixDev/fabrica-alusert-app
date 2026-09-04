@@ -23,6 +23,20 @@ const DEFAULT_OPTIONS: BarcodeOptions = {
 };
 
 /**
+ * Sanitizes barcode strings by removing accents and special non-ASCII characters (e.g. Ç -> C)
+ * required for CODE128 barcode standard compatibility.
+ */
+export function sanitizeBarcodeValue(value: string): string {
+  if (!value) return "";
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ç/gi, "c")
+    .replace(/Ç/g, "C")
+    .toUpperCase();
+}
+
+/**
  * Renders a barcode onto a canvas element.
  */
 export function renderBarcodeToCanvas(
@@ -33,7 +47,8 @@ export function renderBarcodeToCanvas(
   if (!canvas || !value) return false;
   try {
     const opts = { ...DEFAULT_OPTIONS, ...options };
-    JsBarcode(canvas, value, {
+    const cleanValue = sanitizeBarcodeValue(value);
+    JsBarcode(canvas, cleanValue, {
       format: "CODE128",
       width: opts.width,
       height: opts.height,
@@ -78,12 +93,16 @@ export function downloadBarcodeImage(barcodeValue: string, productName: string):
   const link = document.createElement("a");
   const cleanName = productName
     ? productName
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/ç/gi, "c")
         .toLowerCase()
         .trim()
         .replace(/[^a-z0-9]/gi, "_")
     : "produto";
 
-  link.download = `codigo_barras_${cleanName}_${barcodeValue}.png`;
+  const cleanBarcode = sanitizeBarcodeValue(barcodeValue);
+  link.download = `codigo_barras_${cleanName}_${cleanBarcode}.png`;
   link.href = dataUrl;
   document.body.appendChild(link);
   link.click();
