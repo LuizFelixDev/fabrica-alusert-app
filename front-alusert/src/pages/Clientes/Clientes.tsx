@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   ChevronLeft, 
   WifiOff, 
@@ -8,23 +8,36 @@ import {
   Mail, 
   MapPin, 
   Calendar,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  RefreshCw,
+  Search,
+  Plus
 } from "lucide-react";
 import "./Clientes.css";
 import colors from "../../constants/colors";
 import { ENDPOINTS } from "../../constants/api";
+import { catalogoApi } from "../../services/catalogoApi";
+import EditarCatalogo from "../EditarCatalogo/EditarCatalogo";
 
-interface Client {
+export interface Client {
   id: number;
   nome: string;
   cpf_cnpj: string;
   telefone: string | null;
   email: string | null;
-  rua: string;
-  bairro: string;
+  rua?: string;
+  bairro?: string;
   cidade: string | null;
   estado: string | null;
-  data_cadastro: string;
+  data_cadastro?: string;
+}
+
+interface SelectedCatalogState {
+  id: number;
+  clienteNome: string;
+  tokenLink?: string;
+  ativo?: boolean;
 }
 
 interface ClientesProps {
@@ -35,9 +48,16 @@ export default function Clientes({ onBack }: ClientesProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Modal States
+  // Search state with ~400ms debounce
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+
+  // Screen 2 active catalog state
+  const [activeCatalog, setActiveCatalog] = useState<SelectedCatalogState | null>(null);
+  const [openingCatalogId, setOpeningCatalogId] = useState<number | null>(null);
+
+  // Modal States for Client creation/editing/details
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
   const [formModalVisible, setFormModalVisible] = useState<boolean>(false);
@@ -55,35 +75,63 @@ export default function Clientes({ onBack }: ClientesProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  // Fetch Clients
-  const fetchClients = async () => {
+  // Debounce handler (~400ms) for search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Fetch Clients from API with optional search filter GET /clientes?busca=texto
+  const fetchClients = async (query: string = "") => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(ENDPOINTS.clientes);
-      if (!res.ok) throw new Error("Erro ao buscar clientes do servidor");
-      const data = await res.json();
+      const data = await catalogoApi.getClientes(query);
       setClients(data);
     } catch (err: any) {
       console.error(err);
-      setError("Não foi possível conectar ao servidor.");
+      setError("Não foi possível carregar a lista de clientes. Verifique sua conexão.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Re-fetch when debounced search term updates
   useEffect(() => {
-    fetchClients();
-  }, []);
+    fetchClients(debouncedSearchTerm);
+  }, [debouncedSearchTerm]);
 
-  // Handle Create or Update Submit
+  // Handle clicking "Catálogo" button -> POST /clientes/:id/catalogo & navigate to Screen 2
+  const handleOpenCatalogo = async (client: Client, e: React.MouseEvent) => {
+    e.stopPropagation(); // prevent opening details modal
+    try {
+      setOpeningCatalogId(client.id);
+      const catalogData = await catalogoApi.getOrCreateCatalogo(client.id);
+
+      setActiveCatalog({
+        id: catalogData.id,
+        clienteNome: client.nome,
+        tokenLink: catalogData.token_link,
+        ativo: catalogData.ativo
+      });
+    } catch (err: any) {
+      console.error("Erro ao abrir catálogo do cliente:", err);
+      alert(err.message || "Erro ao abrir ou criar o catálogo deste cliente.");
+    } finally {
+      setOpeningCatalogId(null);
+    }
+  };
+
+  // Handle Save Client (Create or Update)
   const handleSaveClient = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
-    // Simple validation
-    if (!formNome.trim() || !formCpfCnpj.trim() || !formRua.trim() || !formBairro.trim()) {
-      setFormError("Os campos Nome, CPF/CNPJ, Rua e Bairro são obrigatórios.");
+    if (!formNome.trim() || !formCpfCnpj.trim()) {
+      setFormError("Os campos Nome e CPF/CNPJ são obrigatórios.");
       return;
     }
 
@@ -99,8 +147,8 @@ export default function Clientes({ onBack }: ClientesProps) {
         cpf_cnpj: formCpfCnpj.trim(),
         telefone: formTelefone.trim() || null,
         email: formEmail.trim() || null,
-        rua: formRua.trim(),
-        bairro: formBairro.trim(),
+        rua: formRua.trim() || null,
+        bairro: formBairro.trim() || null,
         cidade: formCidade.trim() || null,
         estado: formEstado.trim().toUpperCase() || null
       };
@@ -114,13 +162,12 @@ export default function Clientes({ onBack }: ClientesProps) {
       const resData = await res.json();
 
       if (!res.ok) {
-        throw new Error(resData.error || "Erro ao salvar cliente");
+        throw new Error(resData.error || resData.message || "Erro ao salvar cliente");
       }
 
-      await fetchClients();
+      await fetchClients(debouncedSearchTerm);
       setFormModalVisible(false);
       
-      // If editing, update details view
       if (isEditing) {
         setSelectedClient(resData);
       }
@@ -151,7 +198,7 @@ export default function Clientes({ onBack }: ClientesProps) {
 
       setDetailsModalVisible(false);
       setSelectedClient(null);
-      await fetchClients();
+      await fetchClients(debouncedSearchTerm);
     } catch (err: any) {
       console.error(err);
       alert(err.message || "Erro ao excluir cliente.");
@@ -168,8 +215,8 @@ export default function Clientes({ onBack }: ClientesProps) {
     setFormCpfCnpj(client.cpf_cnpj);
     setFormTelefone(client.telefone || "");
     setFormEmail(client.email || "");
-    setFormRua(client.rua);
-    setFormBairro(client.bairro);
+    setFormRua(client.rua || "");
+    setFormBairro(client.bairro || "");
     setFormCidade(client.cidade || "");
     setFormEstado(client.estado || "");
     
@@ -193,7 +240,8 @@ export default function Clientes({ onBack }: ClientesProps) {
   };
 
   // Format Date
-  const formatDate = (isoString: string) => {
+  const formatDate = (isoString?: string) => {
+    if (!isoString) return "-";
     try {
       const d = new Date(isoString);
       return d.toLocaleDateString("pt-BR", {
@@ -206,103 +254,144 @@ export default function Clientes({ onBack }: ClientesProps) {
     }
   };
 
-  // Filter clients locally
-  const filteredClients = clients.filter(c => {
-    const q = searchTerm.toLowerCase().trim();
-    if (!q) return true;
+  // IF Screen 2 "Editar Catálogo" is active, render EditarCatalogo component
+  if (activeCatalog) {
     return (
-      c.nome.toLowerCase().includes(q) ||
-      c.cpf_cnpj.toLowerCase().includes(q) ||
-      (c.email && c.email.toLowerCase().includes(q))
+      <EditarCatalogo
+        catalogoId={activeCatalog.id}
+        clienteNome={activeCatalog.clienteNome}
+        tokenLinkInitial={activeCatalog.tokenLink}
+        ativoInitial={activeCatalog.ativo}
+        onBack={() => setActiveCatalog(null)}
+      />
     );
-  });
+  }
 
   return (
     <div className="clientes-container page-content">
       {/* Header */}
       <header className="header-container">
         <div className="header-left">
-          <button className="back-button" onClick={onBack} title="Voltar ao início">
-            <ChevronLeft size={24} color="#64748b" />
-          </button>
+          {onBack && (
+            <button className="back-button" onClick={onBack} title="Voltar ao início">
+              <ChevronLeft size={24} color="#64748b" />
+            </button>
+          )}
           <div className="title-container">
             <h2 className="header-title">CLIENTES</h2>
             <span className="header-subtitle">
-              {loading ? "Carregando..." : `${clients.length} clientes`}
+              {loading ? "Carregando..." : `${clients.length} cliente(s) encontrado(s)`}
             </span>
           </div>
         </div>
 
         <button className="new-button" onClick={openNewForm}>
-          + NOVO
+          <Plus size={14} style={{ marginRight: 4 }} /> NOVO
         </button>
       </header>
 
-
-      {/* Search Filter */}
+      {/* Search Input with Debounce */}
       <div className="search-bar-container">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Pesquisar por nome, CPF/CNPJ ou e-mail..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+        <div className="search-input-wrapper">
+          <Search size={16} className="search-bar-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Buscar por nome do cliente (busca automática com debounce)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button className="clear-input-btn" onClick={() => setSearchTerm("")}>
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Loader */}
       {loading && (
         <div className="loading-container">
-          <div className="spinner"></div>
-          <span className="loading-text">Carregando clientes...</span>
+          <RefreshCw size={24} className="spin-icon" style={{ color: colors.primary }} />
+          <span className="loading-text">Carregando lista de clientes...</span>
         </div>
       )}
 
       {/* Connection error */}
       {!loading && error && (
         <div className="connection-error-container">
-          <WifiOff size={48} color={colors.error.text} style={{ marginBottom: '14px' }} />
+          <WifiOff size={44} color={colors.error.text} style={{ marginBottom: "14px" }} />
           <p className="error-msg">{error}</p>
-          <button className="retry-btn" onClick={fetchClients}>Tentar Recarregar</button>
+          <button className="retry-btn" onClick={() => fetchClients(debouncedSearchTerm)}>
+            <RefreshCw size={14} style={{ marginRight: 6 }} /> Tentar Recarregar
+          </button>
         </div>
       )}
 
       {/* Clientes List */}
       {!loading && !error && (
         <div className="clients-list-wrapper">
-          {filteredClients.length === 0 ? (
+          {clients.length === 0 ? (
             <div className="empty-state-container">
-              <span>Nenhum cliente cadastrado ou encontrado.</span>
+              <span>Nenhum cliente cadastrado ou encontrado para a busca.</span>
             </div>
           ) : (
             <div className="clients-card">
-              {filteredClients.map((client, idx) => (
-                <div key={client.id}>
-                  <button
-                    className="client-item-btn"
-                    onClick={() => {
-                      setSelectedClient(client);
-                      setDetailsModalVisible(true);
-                    }}
-                  >
-                    <div className="client-details-left">
-                      <span className="client-name">{client.nome}</span>
-                      <span className="client-subinfo">CPF/CNPJ: {client.cpf_cnpj}</span>
-                      <div className="client-meta-row">
-                        {client.telefone && (
-                          <span className="client-phone">📞 {client.telefone}</span>
-                        )}
-                        {client.email && (
-                          <span className="client-email-mini">✉️ {client.email}</span>
-                        )}
+              {clients.map((client, idx) => {
+                const isOpeningThis = openingCatalogId === client.id;
+
+                return (
+                  <div key={client.id} className="client-row-item">
+                    <button
+                      className="client-item-btn"
+                      onClick={() => {
+                        setSelectedClient(client);
+                        setDetailsModalVisible(true);
+                      }}
+                    >
+                      <div className="client-details-left">
+                        <span className="client-name">{client.nome}</span>
+                        <span className="client-subinfo">CPF/CNPJ: {client.cpf_cnpj}</span>
+                        
+                        {/* Telefone and Cidade display */}
+                        <div className="client-meta-row">
+                          {client.telefone && (
+                            <span className="client-phone">📞 {client.telefone}</span>
+                          )}
+                          {client.cidade && (
+                            <span className="client-cidade">📍 {client.cidade}{client.estado ? ` - ${client.estado}` : ""}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                  {idx < filteredClients.length - 1 && (
-                    <div className="client-item-divider" />
-                  )}
-                </div>
-              ))}
+
+                      {/* Botão "Catálogo" */}
+                      <div className="client-details-right">
+                        <button
+                          className="btn-open-catalogo"
+                          disabled={isOpeningThis}
+                          onClick={(e) => handleOpenCatalogo(client, e)}
+                          title="Gerenciar catálogo de preços deste cliente"
+                        >
+                          {isOpeningThis ? (
+                            <>
+                              <RefreshCw size={14} className="spin-icon" />
+                              <span>Abrindo...</span>
+                            </>
+                          ) : (
+                            <>
+                              <BookOpen size={14} />
+                              <span>Catálogo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </button>
+                    {idx < clients.length - 1 && (
+                      <div className="client-item-divider" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -362,17 +451,20 @@ export default function Clientes({ onBack }: ClientesProps) {
                 </div>
               )}
 
-              <div className="info-block">
-                <MapPin size={16} color={colors.primary} className="info-icon" />
-                <div>
-                  <span className="info-label">Endereço</span>
-                  <span className="info-val">
-                    {selectedClient.rua}, {selectedClient.bairro}
-                    {selectedClient.cidade && `, ${selectedClient.cidade}`}
-                    {selectedClient.estado && ` - ${selectedClient.estado.toUpperCase()}`}
-                  </span>
+              {(selectedClient.rua || selectedClient.cidade) && (
+                <div className="info-block">
+                  <MapPin size={16} color={colors.primary} className="info-icon" />
+                  <div>
+                    <span className="info-label">Endereço</span>
+                    <span className="info-val">
+                      {selectedClient.rua && `${selectedClient.rua}`}
+                      {selectedClient.bairro && `, ${selectedClient.bairro}`}
+                      {selectedClient.cidade && `, ${selectedClient.cidade}`}
+                      {selectedClient.estado && ` - ${selectedClient.estado.toUpperCase()}`}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="info-block">
                 <Calendar size={16} color={colors.primary} className="info-icon" />
@@ -384,7 +476,7 @@ export default function Clientes({ onBack }: ClientesProps) {
             </div>
 
             {/* Action buttons footer */}
-            <div className="modal-footer" style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+            <div className="modal-footer" style={{ borderTop: "1px solid var(--border)", paddingTop: "12px" }}>
               <div className="action-buttons-group">
                 <button
                   className="action-btn btn-delete"
@@ -397,6 +489,15 @@ export default function Clientes({ onBack }: ClientesProps) {
                   onClick={() => openEditForm(selectedClient)}
                 >
                   EDITAR
+                </button>
+                <button
+                  className="action-btn btn-catalogo-modal"
+                  onClick={(e) => {
+                    setDetailsModalVisible(false);
+                    handleOpenCatalogo(selectedClient, e);
+                  }}
+                >
+                  <BookOpen size={14} style={{ marginRight: 4 }} /> CATÁLOGO
                 </button>
               </div>
             </div>
@@ -417,7 +518,7 @@ export default function Clientes({ onBack }: ClientesProps) {
               <input
                 type="text"
                 className="input"
-                placeholder="Ex: João da Silva"
+                placeholder="Ex: Alusert Serralheria"
                 value={formNome}
                 onChange={(e) => setFormNome(e.target.value)}
                 required
@@ -456,32 +557,30 @@ export default function Clientes({ onBack }: ClientesProps) {
                 </div>
               </div>
 
-              <div className="form-row" style={{ marginTop: '8px' }}>
+              <div className="form-row" style={{ marginTop: "8px" }}>
                 <div className="half-input-container">
-                  <label className="input-label">RUA / LOGRADOURO *</label>
+                  <label className="input-label">RUA / LOGRADOURO</label>
                   <input
                     type="text"
                     className="input"
                     placeholder="Ex: Av. Principal, 100"
                     value={formRua}
                     onChange={(e) => setFormRua(e.target.value)}
-                    required
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">BAIRRO *</label>
+                  <label className="input-label">BAIRRO</label>
                   <input
                     type="text"
                     className="input"
                     placeholder="Ex: Centro"
                     value={formBairro}
                     onChange={(e) => setFormBairro(e.target.value)}
-                    required
                   />
                 </div>
               </div>
 
-              <div className="form-row" style={{ marginTop: '8px' }}>
+              <div className="form-row" style={{ marginTop: "8px" }}>
                 <div className="half-input-container">
                   <label className="input-label">CIDADE</label>
                   <input
@@ -507,7 +606,7 @@ export default function Clientes({ onBack }: ClientesProps) {
 
               {formError && (
                 <div className="form-error-banner">
-                  <AlertCircle size={14} color={colors.error.text} style={{ marginRight: '6px', flexShrink: 0 }} />
+                  <AlertCircle size={14} color={colors.error.text} style={{ marginRight: "6px", flexShrink: 0 }} />
                   <span className="form-error-text">{formError}</span>
                 </div>
               )}
