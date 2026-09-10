@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   ChevronLeft, 
   Copy, 
@@ -9,13 +9,13 @@ import {
   AlertCircle, 
   Eye, 
   EyeOff, 
-  DollarSign, 
   ExternalLink,
   CheckCircle2,
   XCircle,
   Tag
 } from "lucide-react";
-import { catalogoApi, CatalogoItem, UpdateCatalogoItemPayload } from "../../services/catalogoApi";
+import { catalogoApi } from "../../services/catalogoApi";
+import type { CatalogoItem, UpdateCatalogoItemPayload } from "../../services/catalogoApi";
 import "./EditarCatalogo.css";
 
 interface EditarCatalogoProps {
@@ -34,7 +34,7 @@ export default function EditarCatalogo({
   onBack
 }: EditarCatalogoProps) {
   // State for Catalog metadata
-  const [tokenLink, setTokenLink] = useState<string>(tokenLinkInitial || "");
+  const [tokenLink] = useState<string>(tokenLinkInitial || "");
   const [ativo, setAtivo] = useState<boolean>(ativoInitial);
   const [togglingAtivo, setTogglingAtivo] = useState<boolean>(false);
 

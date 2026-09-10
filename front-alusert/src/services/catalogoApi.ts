@@ -4,12 +4,12 @@ export interface Cliente {
   id: number;
   nome: string;
   cpf_cnpj: string;
-  telefone?: string | null;
-  email?: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  rua?: string | null;
-  bairro?: string | null;
+  telefone: string | null;
+  email: string | null;
+  cidade: string | null;
+  estado: string | null;
+  rua?: string;
+  bairro?: string;
   data_cadastro?: string;
 }
 
