@@ -9,4 +9,6 @@ export const ENDPOINTS = {
   vendas: `${API_BASE_URL}/vendas`,
   usuarios: `${API_BASE_URL}/usuarios`,
   login: `${API_BASE_URL}/usuarios/login`,
+  catalogos: `${API_BASE_URL}/catalogos`,
 };
+
