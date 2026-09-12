@@ -111,7 +111,7 @@ export default function EditarCatalogo({
 
   // Copy public link to clipboard
   const handleCopyLink = () => {
-    const domain = window.location.origin;
+    const domain = import.meta.env.VITE_CATALOGO_PUBLIC_URL || window.location.origin;
     const publicUrl = tokenLink ? `${domain}/c/${tokenLink}` : `${domain}/c/cat_${catalogoId}`;
 
     navigator.clipboard.writeText(publicUrl).then(() => {
