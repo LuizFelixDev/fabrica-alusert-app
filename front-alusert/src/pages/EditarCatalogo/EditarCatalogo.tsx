@@ -261,9 +261,9 @@ export default function EditarCatalogo({
   };
 
   // Domain for public link representation
-  const publicLinkDisplay = tokenLink 
-    ? `seusite.com/c/${tokenLink}` 
-    : `seusite.com/c/cat_${catalogoId}`;
+  const publicDomain = import.meta.env.VITE_CATALOGO_PUBLIC_URL || window.location.origin;
+  const fullPublicUrl = tokenLink ? `${publicDomain}/c/${tokenLink}` : `${publicDomain}/c/cat_${catalogoId}`;
+  const publicLinkDisplay = fullPublicUrl.replace(/^https?:\/\//, "");
 
   return (
     <div className="editar-catalogo-container page-content">
@@ -318,27 +318,43 @@ export default function EditarCatalogo({
           <span className="link-label">Link Público de Acesso</span>
           <div className="link-url-box">
             <ExternalLink size={14} className="link-icon" />
-            <span className="link-url-text">{publicLinkDisplay}</span>
+            <a href={fullPublicUrl} target="_blank" rel="noopener noreferrer" className="link-url-text" title="Clique para abrir o catálogo público">
+              {publicLinkDisplay}
+            </a>
           </div>
         </div>
 
-        <button 
-          className={`copy-link-btn ${copiedLink ? "copied" : ""}`}
-          onClick={handleCopyLink}
-          title="Copiar link do catálogo para área de transferência"
-        >
-          {copiedLink ? (
-            <>
-              <Check size={16} />
-              <span>Copiado!</span>
-            </>
-          ) : (
-            <>
-              <Copy size={16} />
-              <span>Copiar Link</span>
-            </>
-          )}
-        </button>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <a
+            href={fullPublicUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="copy-link-btn"
+            style={{ textDecoration: "none", backgroundColor: "#3b82f6", color: "#fff", borderColor: "#3b82f6" }}
+            title="Abrir catálogo público em nova aba"
+          >
+            <ExternalLink size={16} />
+            <span>Abrir Catálogo</span>
+          </a>
+
+          <button 
+            className={`copy-link-btn ${copiedLink ? "copied" : ""}`}
+            onClick={handleCopyLink}
+            title="Copiar link do catálogo para área de transferência"
+          >
+            {copiedLink ? (
+              <>
+                <Check size={16} />
+                <span>Copiado!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={16} />
+                <span>Copiar Link</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Filter / Search Bar above table */}
