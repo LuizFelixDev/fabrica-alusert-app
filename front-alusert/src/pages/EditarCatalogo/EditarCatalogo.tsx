@@ -109,9 +109,17 @@ export default function EditarCatalogo({
     }
   };
 
+  const getPublicDomain = (): string => {
+    const envUrl = import.meta.env.VITE_CATALOGO_PUBLIC_URL;
+    if (envUrl && (!import.meta.env.PROD || !envUrl.includes("localhost"))) {
+      return envUrl;
+    }
+    return window.location.origin;
+  };
+
   // Copy public link to clipboard
   const handleCopyLink = () => {
-    const domain = import.meta.env.VITE_CATALOGO_PUBLIC_URL || window.location.origin;
+    const domain = getPublicDomain();
     const publicUrl = tokenLink ? `${domain}/c/${tokenLink}` : `${domain}/c/cat_${catalogoId}`;
 
     navigator.clipboard.writeText(publicUrl).then(() => {
@@ -261,7 +269,7 @@ export default function EditarCatalogo({
   };
 
   // Domain for public link representation
-  const publicDomain = import.meta.env.VITE_CATALOGO_PUBLIC_URL || window.location.origin;
+  const publicDomain = getPublicDomain();
   const fullPublicUrl = tokenLink ? `${publicDomain}/c/${tokenLink}` : `${publicDomain}/c/cat_${catalogoId}`;
   const publicLinkDisplay = fullPublicUrl.replace(/^https?:\/\//, "");
 
