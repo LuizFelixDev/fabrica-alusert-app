@@ -10,7 +10,16 @@ import Usuarios from './pages/Usuarios/Usuarios';
 import AppBar from './components/AppBar/AppBar';
 import BarcodeScanner from './components/BarcodeScanner/BarcodeScanner';
 
+import PublicCatalogo from './pages/PublicCatalogo/PublicCatalogo';
+
 export default function App() {
+  // Check if current route is a public catalog link (/c/:token or /catalogo/:token)
+  const pathname = window.location.pathname;
+  const publicMatch = pathname.match(/^\/(?:c|catalogo)\/([^/]+)/);
+  if (publicMatch && publicMatch[1]) {
+    return <PublicCatalogo tokenLink={publicMatch[1]} />;
+  }
+
   const [user, setUser] = useState<{ id: number; nome: string; email: string } | null>(() => {
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
