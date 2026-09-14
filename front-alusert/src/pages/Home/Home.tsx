@@ -416,8 +416,9 @@ export default function Home({ onNavigate }: HomeProps) {
               lastSalesVal.map((sale) => {
                 const isPago = sale.status === "concluída";
                 const isCancelada = sale.status === "cancelada";
+                const isPedido = sale.status === "pedido";
                 const clientObj = clients.find(c => c.id === sale.id_cliente);
-                const statusLabel = sale.status === "concluída" ? "PAGO" : sale.status === "cancelada" ? "CANCELADO" : "PENDENTE";
+                const statusLabel = sale.status === "concluída" ? "PAGO" : sale.status === "cancelada" ? "CANCELADO" : sale.status === "pedido" ? "PEDIDO" : "PENDENTE";
 
                 return (
                   <div
@@ -438,17 +439,19 @@ export default function Home({ onNavigate }: HomeProps) {
                             ? 'status-badge-pago' 
                             : isCancelada 
                             ? 'status-badge-cancelada' 
+                            : isPedido
+                            ? 'status-badge-pedido'
                             : 'status-badge-pendente'
                         }`}
                         style={{
-                          backgroundColor: isPago ? '#dcfce7' : isCancelada ? '#fee2e2' : '#fef3c7',
-                          color: isPago ? '#16a34a' : isCancelada ? '#b91c1c' : '#d97706'
+                          backgroundColor: isPago ? '#dcfce7' : isCancelada ? '#fee2e2' : isPedido ? '#dbeafe' : '#fef3c7',
+                          color: isPago ? '#16a34a' : isCancelada ? '#b91c1c' : isPedido ? '#2563eb' : '#d97706'
                         }}
                       >
                         <span
                           className="status-badge-text"
                           style={{
-                            color: isPago ? '#16a34a' : isCancelada ? '#b91c1c' : '#d97706'
+                            color: isPago ? '#16a34a' : isCancelada ? '#b91c1c' : isPedido ? '#2563eb' : '#d97706'
                           }}
                         >
                           {statusLabel}

@@ -139,6 +139,13 @@
   color: #d97706;
 }
 
+.badge-status-pedido {
+  background-color: #dbeafe;
+}
+.badge-status-pedido .status-badge-mini-text {
+  color: #2563eb;
+}
+
 .badge-status-cancelada {
   background-color: var(--error-bg);
 }

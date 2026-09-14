@@ -36,7 +36,7 @@ interface Sale {
   id_usuario: number;
   data_venda: string;
   forma_pagamento: string;
-  status: 'pendente' | 'concluída' | 'cancelada';
+  status: 'pedido' | 'pendente' | 'concluída' | 'cancelada';
   valor_total: number | string;
   nome_cliente: string;
   nome_usuario: string;
@@ -102,7 +102,7 @@ export default function Vendas({ onBack }: VendasProps) {
   const [formClientId, setFormClientId] = useState<string>("");
   const [formSellerId, setFormSellerId] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
-  const [formStatus, setFormStatus] = useState<'pendente' | 'concluída' | 'cancelada'>("concluída");
+  const [formStatus, setFormStatus] = useState<'pedido' | 'pendente' | 'concluída' | 'cancelada'>("concluída");
   const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
   const [formItems, setFormItems] = useState<{
     id_produto: string;
@@ -486,12 +486,14 @@ export default function Vendas({ onBack }: VendasProps) {
   const getStatusBadgeClass = (status: string) => {
     if (status === "concluída") return "badge-status-concluida";
     if (status === "pendente") return "badge-status-pendente";
+    if (status === "pedido") return "badge-status-pedido";
     return "badge-status-cancelada";
   };
 
   const getStatusIcon = (status: string) => {
     if (status === "concluída") return <CheckCircle size={12} color="#16a34a" />;
     if (status === "pendente") return <Clock size={12} color="#d97706" />;
+    if (status === "pedido") return <ShoppingBag size={12} color="#2563eb" />;
     return <XCircle size={12} color="#b91c1c" />;
   };
 
@@ -711,7 +713,7 @@ export default function Vendas({ onBack }: VendasProps) {
       {!loading && !error && (
         <div className="filters-container">
           <div className="filters-scroll">
-            {["TODOS", "CONCLUÍDA", "PENDENTE", "CANCELADA"].map((filter) => {
+            {["TODOS", "PEDIDO", "CONCLUÍDA", "PENDENTE", "CANCELADA"].map((filter) => {
               const isActive = selectedFilter === filter;
               return (
                 <button
@@ -719,7 +721,7 @@ export default function Vendas({ onBack }: VendasProps) {
                   className={`filter-chip ${isActive ? 'filter-chip-active' : ''}`}
                   onClick={() => setSelectedFilter(filter)}
                 >
-                  {filter === "CONCLUÍDA" ? "CONCLUÍDAS" : filter === "PENDENTE" ? "PENDENTES" : filter === "CANCELADA" ? "CANCELADAS" : filter}
+                  {filter === "PEDIDO" ? "PEDIDOS" : filter === "CONCLUÍDA" ? "CONCLUÍDAS" : filter === "PENDENTE" ? "PENDENTES" : filter === "CANCELADA" ? "CANCELADAS" : filter}
                 </button>
               );
             })}
@@ -915,7 +917,7 @@ export default function Vendas({ onBack }: VendasProps) {
                   ALTERAR
                 </button>
 
-                {(selectedSale.status === "pendente" || selectedSale.status === "concluída") && (
+                {(selectedSale.status === "pedido" || selectedSale.status === "pendente" || selectedSale.status === "concluída") && (
                   <button
                     className="status-btn btn-cancelar"
                     onClick={() => handleUpdateStatus(selectedSale.id, "cancelada")}
@@ -1005,6 +1007,7 @@ export default function Vendas({ onBack }: VendasProps) {
                     onChange={(e) => setFormStatus(e.target.value as any)}
                     required
                   >
+                    <option value="pedido">Pedido (Catálogo)</option>
                     <option value="concluída">Concluída</option>
                     <option value="pendente">Pendente</option>
                     <option value="cancelada">Cancelada</option>

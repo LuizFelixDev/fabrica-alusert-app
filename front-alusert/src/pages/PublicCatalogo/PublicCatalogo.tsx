@@ -38,7 +38,7 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
   const [cartModalOpen, setCartModalOpen] = useState<boolean>(false);
 
   // Order submission state
-  const [formaPagamento, setFormaPagamento] = useState<string>("PIX");
+  const [formaPagamento, setFormaPagamento] = useState<string>("Pix");
   const [observacoes, setObservacoes] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [orderSuccess, setOrderSuccess] = useState<{ id_venda?: number; message?: string } | null>(null);
@@ -425,11 +425,11 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                     value={formaPagamento}
                     onChange={(e) => setFormaPagamento(e.target.value)}
                   >
-                    <option value="PIX">PIX</option>
-                    <option value="Boleto Bancário">Boleto Bancário</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                    <option value="A Prazo">A Prazo (30 dias)</option>
+                    <option value="Pix">PIX (Padrão)</option>
+                    <option value="Boleto">Boleto Bancário</option>
+                    <option value="Cartão">Cartão de Crédito</option>
                     <option value="Dinheiro">Dinheiro</option>
+                    <option value="Cheque">Cheque</option>
                   </select>
                 </div>
 
