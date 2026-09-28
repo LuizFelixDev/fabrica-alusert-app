@@ -90,6 +90,26 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
     });
   };
 
+  // Set explicit quantity in cart
+  const handleSetQuantity = (produto: PublicCatalogoProduto, targetQty: number) => {
+    const validQty = Math.max(0, isNaN(targetQty) ? 0 : targetQty);
+    setCart(prev => {
+      if (validQty === 0) {
+        const copy = { ...prev };
+        delete copy[produto.id_produto];
+        return copy;
+      }
+
+      return {
+        ...prev,
+        [produto.id_produto]: {
+          produto,
+          quantidade: validQty
+        }
+      };
+    });
+  };
+
   // Direct add to cart
   const handleAddToCart = (produto: PublicCatalogoProduto) => {
     handleUpdateQuantity(produto, 1);
@@ -301,6 +321,7 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                 <div className="product-card-actions">
                   <div className="qty-control-box">
                     <button 
+                      type="button"
                       className="qty-btn"
                       onClick={() => handleUpdateQuantity(produto, -1)}
                       disabled={qtyInCart === 0}
@@ -308,8 +329,22 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                     >
                       <Minus size={14} />
                     </button>
-                    <span className="qty-value">{qtyInCart}</span>
+                    <input 
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="qty-input"
+                      value={qtyInCart === 0 ? "" : qtyInCart}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        handleSetQuantity(produto, isNaN(val) ? 0 : val);
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      title="Digite a quantidade"
+                    />
                     <button 
+                      type="button"
                       className="qty-btn"
                       onClick={() => handleUpdateQuantity(produto, 1)}
                       title="Aumentar quantidade"
@@ -387,15 +422,32 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                   <div className="cart-item-actions">
                     <div className="qty-control-box">
                       <button 
+                        type="button"
                         className="qty-btn"
                         onClick={() => handleUpdateQuantity(item.produto, -1)}
+                        title="Diminuir quantidade"
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="qty-value">{item.quantidade}</span>
+                      <input 
+                        type="number"
+                        min="0"
+                        step="any"
+                        className="qty-input"
+                        value={item.quantidade === 0 ? "" : item.quantidade}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleSetQuantity(item.produto, isNaN(val) ? 0 : val);
+                        }}
+                        onFocus={(e) => e.target.select()}
+                        title="Digite a quantidade"
+                      />
                       <button 
+                        type="button"
                         className="qty-btn"
                         onClick={() => handleUpdateQuantity(item.produto, 1)}
+                        title="Aumentar quantidade"
                       >
                         <Plus size={14} />
                       </button>
