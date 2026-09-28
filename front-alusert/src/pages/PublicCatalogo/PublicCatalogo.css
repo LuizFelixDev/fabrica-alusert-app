@@ -307,11 +307,31 @@
   cursor: not-allowed;
 }
 
-.qty-value {
-  width: 36px;
+.qty-value,
+.qty-input {
+  width: 44px;
+  height: 36px;
+  border: none;
+  background: transparent;
   text-align: center;
   font-weight: 600;
   font-size: 0.95rem;
+  color: var(--text-main);
+  outline: none;
+  padding: 0 2px;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.qty-input:focus {
+  background-color: #ffffff;
+  box-shadow: inset 0 0 0 1.5px var(--primary-orange);
 }
 
 .btn-add-cart {
