@@ -10,7 +10,9 @@ import {
   X,
   PlusCircle,
   Download,
-  Barcode
+  Barcode,
+  Upload,
+  Image as ImageIcon
 } from "lucide-react";
 import "./Produtos.css";
 import colors from "../../constants/colors";
@@ -44,6 +46,7 @@ interface BackendProduct {
   peso_kg: number | null;
   preco_custo: number | string | null;
   preco_venda: number | string | null;
+  imagem?: string | null;
   status: boolean;
   data_cadastro?: string;
   data_atualizacao?: string;
@@ -94,6 +97,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [formTamanhoNumero, setFormTamanhoNumero] = useState("");
   const [formEstoqueMinimo, setFormEstoqueMinimo] = useState("");
   const [formPesoKg, setFormPesoKg] = useState("");
+  const [formImagem, setFormImagem] = useState<string | null>(null);
   const [formStatus, setFormStatus] = useState<boolean>(true);
   const [formMaterials, setFormMaterials] = useState<{
     id_materia_prima: string;
@@ -103,6 +107,71 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   const [availableMaterials, setAvailableMaterials] = useState<any[]>([]);
+
+  // Image Upload helper function (compress and convert to base64 Data URL)
+  const compressImageToBase64 = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.82): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth || height > maxHeight) {
+            if (width / height > maxWidth / maxHeight) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setFormError("Por favor, selecione um arquivo de imagem válido (JPG, PNG, WEBP).");
+      return;
+    }
+
+    try {
+      const compressedBase64 = await compressImageToBase64(file);
+      setFormImagem(compressedBase64);
+      setFormError(null);
+    } catch (err) {
+      console.error("Erro ao converter imagem:", err);
+      setFormError("Não foi possível processar a imagem selecionada.");
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormImagem(null);
+  };
 
   // Quick Create Raw Material State
   const [rawModalVisible, setRawModalVisible] = useState<boolean>(false);
@@ -268,6 +337,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
         tamanho_numero: formTamanhoNumero ? parseFloat(formTamanhoNumero) : null,
         estoque_minimo: formEstoqueMinimo ? parseInt(formEstoqueMinimo, 10) : 0,
         peso_kg: formPesoKg ? parseFloat(formPesoKg) : null,
+        imagem: formImagem || null,
         status: formStatus,
         materias_primas: formMaterials
           .filter(m => m.id_materia_prima !== "" && m.quantidade_utilizada !== "")
@@ -307,6 +377,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
       setFormTamanhoNumero("");
       setFormEstoqueMinimo("");
       setFormPesoKg("");
+      setFormImagem(null);
       setFormStatus(true);
       setFormMaterials([]);
       setIsEditing(false);
@@ -369,6 +440,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
     setFormEstoqueMinimo(String(selectedProduct.estoque_minimo));
     setFormPrecoCusto(selectedProduct.preco_custo !== null ? String(selectedProduct.preco_custo) : "");
     setFormPrecoVenda(selectedProduct.preco_venda !== null ? String(selectedProduct.preco_venda) : "");
+    setFormImagem(selectedProduct.imagem || null);
     setFormStatus(selectedProduct.status);
 
     if (selectedProduct.materias_primas && selectedProduct.materias_primas.length > 0) {
@@ -481,6 +553,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
             setFormTamanhoNumero("");
             setFormEstoqueMinimo("");
             setFormPesoKg("");
+            setFormImagem(null);
             setFormStatus(true);
             setModalVisible(true);
           }}
@@ -594,6 +667,16 @@ export default function Produtos({ onBack }: ProdutosProps) {
                       setDetailsModalVisible(true);
                     }}
                   >
+                    <div className="product-card-thumb-container">
+                      {product.imagem ? (
+                        <img src={product.imagem} alt={product.nome} className="product-card-thumb" />
+                      ) : (
+                        <div className="product-card-thumb-placeholder">
+                          <ImageIcon size={20} color="#94a3b8" />
+                        </div>
+                      )}
+                    </div>
+
                     <div className="product-details">
                       <span className="product-name">{product.nome}</span>
                       
@@ -702,6 +785,11 @@ export default function Produtos({ onBack }: ProdutosProps) {
 
             {/* Body */}
             <div className="details-body">
+              {selectedProduct.imagem && (
+                <div className="details-image-container">
+                  <img src={selectedProduct.imagem} alt={selectedProduct.nome} className="details-image" />
+                </div>
+              )}
               {selectedProduct.descricao && (
                 <div className="details-section">
                   <span className="details-section-label">DESCRIÇÃO</span>
@@ -862,6 +950,36 @@ export default function Produtos({ onBack }: ProdutosProps) {
             </h3>
             
             <div className="form-scroll">
+              {/* Image Upload Base64 Field */}
+              <div className="image-upload-section">
+                <label className="input-label">IMAGEM DO PRODUTO (BASE64)</label>
+                {formImagem ? (
+                  <div className="image-preview-wrapper">
+                    <img src={formImagem} alt="Pré-visualização do produto" className="image-preview-img" />
+                    <button
+                      type="button"
+                      className="remove-image-btn"
+                      onClick={handleRemoveImage}
+                    >
+                      <Trash2 size={16} color="#ef4444" />
+                      <span>Remover Imagem</span>
+                    </button>
+                  </div>
+                ) : (
+                  <label className="image-upload-dropzone">
+                    <Upload size={24} color="var(--primary)" />
+                    <span className="upload-dropzone-title">Clique para selecionar uma imagem</span>
+                    <span className="upload-dropzone-subtitle">Convertida automaticamente para Base64 (JPG, PNG, WEBP)</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden-file-input"
+                    />
+                  </label>
+                )}
+              </div>
+
               <label className="input-label">NOME DO PRODUTO *</label>
               <input
                 type="text"
