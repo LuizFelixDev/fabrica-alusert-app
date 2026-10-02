@@ -12,7 +12,8 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
-  Tag
+  Tag,
+  Image as ImageIcon
 } from "lucide-react";
 import { catalogoApi } from "../../services/catalogoApi";
 import type { CatalogoItem, UpdateCatalogoItemPayload } from "../../services/catalogoApi";
@@ -25,6 +26,15 @@ interface EditarCatalogoProps {
   ativoInitial?: boolean;
   onBack: () => void;
 }
+
+const getProductImageSrc = (imagem?: string | null): string | null => {
+  if (!imagem || !imagem.trim()) return null;
+  const trimmed = imagem.trim();
+  if (trimmed.startsWith("data:image/") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `data:image/jpeg;base64,${trimmed}`;
+};
 
 export default function EditarCatalogo({
   catalogoId,
@@ -438,10 +448,26 @@ export default function EditarCatalogo({
                       {/* 1. Nome do Produto */}
                       <td className="col-produto">
                         <div className="product-name-box">
-                          <span className="product-name">{item.nome_produto}</span>
-                          {!item.visivel && (
-                            <span className="badge-oculto">Oculto</span>
-                          )}
+                          {(() => {
+                            const imgSrc = getProductImageSrc(item.imagem);
+                            return (
+                              <div className="table-product-thumb-box">
+                                {imgSrc ? (
+                                  <img src={imgSrc} alt={item.nome_produto} className="table-product-thumb" />
+                                ) : (
+                                  <div className="table-product-thumb-fallback">
+                                    <ImageIcon size={16} color="#94a3b8" />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                          <div className="product-info-column">
+                            <span className="product-name">{item.nome_produto}</span>
+                            {!item.visivel && (
+                              <span className="badge-oculto">Oculto</span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
