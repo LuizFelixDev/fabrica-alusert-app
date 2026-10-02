@@ -10,7 +10,8 @@ import {
   Package, 
   Send,
   Loader2,
-  Tag
+  Tag,
+  Image as ImageIcon
 } from "lucide-react";
 import { catalogoApi } from "../../services/catalogoApi";
 import type { PublicCatalogoData, PublicCatalogoProduto } from "../../services/catalogoApi";
@@ -24,6 +25,15 @@ interface CartItem {
   produto: PublicCatalogoProduto;
   quantidade: number;
 }
+
+const getProductImageSrc = (imagem?: string | null): string | null => {
+  if (!imagem || !imagem.trim()) return null;
+  const trimmed = imagem.trim();
+  if (trimmed.startsWith("data:image/") || trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `data:image/jpeg;base64,${trimmed}`;
+};
 
 export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
   const [catalogData, setCatalogData] = useState<PublicCatalogoData | null>(null);
@@ -278,8 +288,33 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
             const discountPercent = getDiscountPercent(produto.preco, produto.preco_padrao);
             const isAdded = addedAnimation[produto.id_produto];
 
+            const imgSrc = getProductImageSrc(produto.imagem);
+
             return (
               <div key={produto.id_produto} className="public-product-card">
+                <div className="product-card-image-box">
+                  {imgSrc ? (
+                    <img 
+                      src={imgSrc} 
+                      alt={produto.nome} 
+                      className="product-card-image"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = "none";
+                        const parent = e.currentTarget.parentElement;
+                        const fallback = parent?.querySelector(".product-card-image-fallback");
+                        if (fallback) (fallback as HTMLElement).style.display = "flex";
+                      }}
+                    />
+                  ) : null}
+                  <div 
+                    className="product-card-image-fallback" 
+                    style={{ display: imgSrc ? "none" : "flex" }}
+                  >
+                    <ImageIcon size={32} color="#cbd5e1" />
+                  </div>
+                </div>
+
                 <div className="product-card-top">
                   <div className="product-card-badges">
                     <span className="product-category-tag">
@@ -410,14 +445,30 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
             </div>
 
             <div className="cart-modal-body">
-              {cartItemsList.map(item => (
-                <div key={item.produto.id_produto} className="cart-item-row">
-                  <div className="cart-item-info">
-                    <h4 className="cart-item-name">{item.produto.nome}</h4>
-                    <div className="cart-item-price">
-                      {formatCurrency(item.produto.preco)} {item.produto.unidade_medida ? `/${item.produto.unidade_medida}` : ""}
+              {cartItemsList.map(item => {
+                const itemImgSrc = getProductImageSrc(item.produto.imagem);
+                return (
+                  <div key={item.produto.id_produto} className="cart-item-row">
+                    <div className="cart-item-thumb-box">
+                      {itemImgSrc ? (
+                        <img 
+                          src={itemImgSrc} 
+                          alt={item.produto.nome} 
+                          className="cart-item-thumb" 
+                        />
+                      ) : (
+                        <div className="cart-item-thumb-fallback">
+                          <ImageIcon size={18} color="#cbd5e1" />
+                        </div>
+                      )}
                     </div>
-                  </div>
+
+                    <div className="cart-item-info">
+                      <h4 className="cart-item-name">{item.produto.nome}</h4>
+                      <div className="cart-item-price">
+                        {formatCurrency(item.produto.preco)} {item.produto.unidade_medida ? `/${item.produto.unidade_medida}` : ""}
+                      </div>
+                    </div>
 
                   <div className="cart-item-actions">
                     <div className="qty-control-box">
@@ -466,7 +517,8 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                     </button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
 
               {/* Order Form Fields */}
               <div className="order-form-section">

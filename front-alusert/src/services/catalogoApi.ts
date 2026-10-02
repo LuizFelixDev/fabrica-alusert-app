@@ -28,6 +28,7 @@ export interface CatalogoItem {
   preco_venda: number;
   preco_negociado: number | null;
   visivel: boolean;
+  imagem?: string | null;
 }
 
 export interface UpdateCatalogoItemPayload {
@@ -49,6 +50,7 @@ export interface PublicCatalogoProduto {
   preco: number;
   preco_padrao: number;
   preco_negociado: number | null;
+  imagem?: string | null;
 }
 
 export interface PublicCatalogoData {
