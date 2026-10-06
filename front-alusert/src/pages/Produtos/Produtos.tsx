@@ -109,7 +109,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
   const [availableMaterials, setAvailableMaterials] = useState<any[]>([]);
 
   // Image Upload helper function (compress and convert to base64 Data URL)
-  const compressImageToBase64 = (file: File, maxWidth = 1024, maxHeight = 1024, quality = 0.82): Promise<string> => {
+  const compressImageToBase64 = (file: File, maxWidth = 800, maxHeight = 800, quality = 0.70): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -144,9 +144,9 @@ export default function Produtos({ onBack }: ProdutosProps) {
           const dataUrl = canvas.toDataURL("image/jpeg", quality);
           resolve(dataUrl);
         };
-        img.onerror = (err) => reject(err);
+        img.onerror = () => reject(new Error("Não foi possível carregar a imagem. Certifique-se de escolher um formato de imagem válido (JPG, PNG)."));
       };
-      reader.onerror = (err) => reject(err);
+      reader.onerror = () => reject(new Error("Erro ao ler o arquivo de imagem selecionado."));
     });
   };
 
@@ -154,18 +154,18 @@ export default function Produtos({ onBack }: ProdutosProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
+    if (file.type && !file.type.startsWith("image/") && !file.type.includes("heic") && !file.type.includes("heif")) {
       setFormError("Por favor, selecione um arquivo de imagem válido (JPG, PNG, WEBP).");
       return;
     }
 
     try {
+      setFormError(null);
       const compressedBase64 = await compressImageToBase64(file);
       setFormImagem(compressedBase64);
-      setFormError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao converter imagem:", err);
-      setFormError("Não foi possível processar a imagem selecionada.");
+      setFormError(err.message || "Não foi possível processar a imagem selecionada.");
     }
   };
 
@@ -361,8 +361,17 @@ export default function Produtos({ onBack }: ProdutosProps) {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+        let errorMessage = `Erro no servidor (${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) errorMessage = errorData.error;
+          else if (errorData.message) errorMessage = errorData.message;
+        } catch {
+          if (response.status === 413) {
+            errorMessage = "A imagem é muito grande para o servidor. Tente usar uma imagem menor ou tire outra foto.";
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       // Reset form & reload
@@ -950,6 +959,7 @@ export default function Produtos({ onBack }: ProdutosProps) {
             </h3>
             
             <div className="form-scroll">
+              {formError && <p className="form-error-text" style={{ marginBottom: "12px" }}>{formError}</p>}
               {/* Image Upload Base64 Field */}
               <div className="image-upload-section">
                 <label className="input-label">IMAGEM DO PRODUTO (BASE64)</label>
