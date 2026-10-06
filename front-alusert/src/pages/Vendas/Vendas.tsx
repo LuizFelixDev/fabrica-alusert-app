@@ -14,7 +14,8 @@ import {
   AlertCircle,
   Edit,
   Printer,
-  FileText
+  FileText,
+  DollarSign
 } from "lucide-react";
 import "./Vendas.css";
 import colors from "../../constants/colors";
@@ -38,6 +39,7 @@ interface Sale {
   forma_pagamento: string;
   status: 'pedido' | 'pendente' | 'concluída' | 'cancelada';
   valor_total: number | string;
+  valor_pago?: number | string;
   nome_cliente: string;
   nome_usuario: string;
   email_cliente?: string;
@@ -104,6 +106,7 @@ export default function Vendas({ onBack }: VendasProps) {
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
   const [formStatus, setFormStatus] = useState<'pedido' | 'pendente' | 'concluída' | 'cancelada'>("concluída");
   const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
+  const [formValorPago, setFormValorPago] = useState<string>("");
   const [formItems, setFormItems] = useState<{
     id_produto: string;
     quantidade: string;
@@ -112,6 +115,14 @@ export default function Vendas({ onBack }: VendasProps) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [productSearchTerm, setProductSearchTerm] = useState<string>("");
+
+  // Partial Payment Modal State
+  const [paymentModalOpen, setPaymentModalOpen] = useState<boolean>(false);
+  const [paymentSale, setPaymentSale] = useState<Sale | null>(null);
+  const [paymentNewValor, setPaymentNewValor] = useState<string>("");
+  const [paymentAutoConclude, setPaymentAutoConclude] = useState<boolean>(true);
+  const [paymentSubmitting, setPaymentSubmitting] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Quick Client States
   const [quickClientModalOpen, setQuickClientModalOpen] = useState<boolean>(false);
@@ -362,8 +373,69 @@ export default function Vendas({ onBack }: VendasProps) {
 
     setIsEditing(true);
     setEditingSaleId(sale.id);
+    setFormValorPago(sale.valor_pago !== undefined && sale.valor_pago !== null ? String(sale.valor_pago) : "");
     setFormError(null);
     setModalVisible(true);
+  };
+
+  // Open Partial Payment Modal
+  const handleOpenPaymentModal = (sale: Sale, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setPaymentSale(sale);
+    const currentPaid = Number(sale.valor_pago || 0);
+    setPaymentNewValor(String(currentPaid));
+    setPaymentAutoConclude(true);
+    setPaymentError(null);
+    setPaymentModalOpen(true);
+  };
+
+  // Submit Partial Payment
+  const handleSavePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentSale) return;
+
+    const numericPago = parseFloat(paymentNewValor);
+    if (isNaN(numericPago) || numericPago < 0) {
+      setPaymentError("Informe um valor válido pago pelo cliente.");
+      return;
+    }
+
+    try {
+      setPaymentSubmitting(true);
+      setPaymentError(null);
+
+      const totalVal = Number(paymentSale.valor_total);
+      let newStatus: string | undefined = undefined;
+
+      if (paymentAutoConclude && numericPago >= totalVal && (paymentSale.status === 'pendente' || paymentSale.status === 'pedido')) {
+        newStatus = 'concluída';
+      }
+
+      const res = await fetch(`${ENDPOINTS.vendas}/${paymentSale.id}/pagamento`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          valor_pago: numericPago,
+          status: newStatus
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Erro ao registrar pagamento");
+      }
+
+      setPaymentModalOpen(false);
+      setPaymentSale(null);
+      if (detailsModalVisible) setDetailsModalVisible(false);
+      fetchData();
+      alert("Pagamento registrado com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      setPaymentError(err.message || "Erro ao salvar pagamento.");
+    } finally {
+      setPaymentSubmitting(false);
+    }
   };
 
   // Handle Form Submission (Create or Edit Sale)
@@ -410,6 +482,7 @@ export default function Vendas({ onBack }: VendasProps) {
         forma_pagamento: formPaymentMethod,
         status: formStatus,
         data_vencimento_cheque: formPaymentMethod === "Cheque" ? formChequeDueDate : undefined,
+        valor_pago: formValorPago !== "" ? parseFloat(formValorPago) : undefined,
         itens: formItems.map(item => ({
           id_produto: parseInt(item.id_produto),
           quantidade: parseFloat(item.quantidade),
@@ -439,6 +512,7 @@ export default function Vendas({ onBack }: VendasProps) {
       setFormPaymentMethod("Pix");
       setFormStatus("concluída");
       setFormChequeDueDate("");
+      setFormValorPago("");
       setFormItems([]);
       setIsEditing(false);
       setEditingSaleId(null);
@@ -761,10 +835,11 @@ export default function Vendas({ onBack }: VendasProps) {
               {filteredSales.map((sale, index) => {
                 const isLast = index === filteredSales.length - 1;
                 return (
-                  <button
+                  <div
                     key={sale.id}
                     className={`sale-item-btn ${!isLast ? 'sale-item-divider' : ''}`}
                     onClick={() => handleViewDetails(sale)}
+                    style={{ cursor: 'pointer', textAlign: 'left', width: '100%' }}
                   >
                     <div className="sale-details-left">
                       <span className="sale-client-name">{sale.nome_cliente}</span>
@@ -773,9 +848,18 @@ export default function Vendas({ onBack }: VendasProps) {
                         <span className="sale-date">{formatDate(sale.data_venda).split(" às ")[0]}</span>
                         <span className="sale-payment-method">• {sale.forma_pagamento}</span>
                       </div>
+                      
+                      {(sale.status === 'pendente' || sale.status === 'pedido') && (
+                        <div className="sale-payment-breakdown">
+                          <span className="sale-paid-text">Pago: {formatPrice(sale.valor_pago || 0)}</span>
+                          <span className="sale-remaining-text">
+                            Restante: {formatPrice(Math.max(0, Number(sale.valor_total) - Number(sale.valor_pago || 0)))}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
-                    <div className="sale-details-right">
+                    <div className="sale-details-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
                       <span className="sale-total-value">
                         {formatPrice(sale.valor_total)}
                       </span>
@@ -783,8 +867,19 @@ export default function Vendas({ onBack }: VendasProps) {
                         {getStatusIcon(sale.status)}
                         <span className="status-badge-mini-text">{sale.status}</span>
                       </div>
+
+                      {(sale.status === 'pendente' || sale.status === 'pedido') && (
+                        <button
+                          type="button"
+                          className="btn-abater-pagamento"
+                          onClick={(e) => handleOpenPaymentModal(sale, e)}
+                        >
+                          <DollarSign size={13} />
+                          Abater Valor
+                        </button>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -883,10 +978,26 @@ export default function Vendas({ onBack }: VendasProps) {
                 </div>
               </div>
 
-              {/* Total Value */}
-              <div className="details-section total-section">
-                <span className="total-label">VALOR TOTAL</span>
-                <span className="total-val">{formatPrice(selectedSale.valor_total)}</span>
+              {/* Total & Partial Payment Breakdown */}
+              <div className="details-section total-section" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="total-label">VALOR TOTAL</span>
+                  <span className="total-val">{formatPrice(selectedSale.valor_total)}</span>
+                </div>
+
+                {selectedSale.valor_pago !== undefined && selectedSale.valor_pago !== null && (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#166534', fontWeight: 600 }}>
+                      <span>VALOR PAGO</span>
+                      <span>{formatPrice(selectedSale.valor_pago)}</span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', color: '#b45309', fontWeight: 800, borderTop: '1px dashed #cbd5e1', paddingTop: '6px' }}>
+                      <span>RESTANTE (SALDO DEVEDOR)</span>
+                      <span>{formatPrice(Math.max(0, Number(selectedSale.valor_total) - Number(selectedSale.valor_pago)))}</span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
@@ -901,6 +1012,16 @@ export default function Vendas({ onBack }: VendasProps) {
               </button>
 
               <div className="action-buttons-group">
+                {(selectedSale.status === "pedido" || selectedSale.status === "pendente") && (
+                  <button
+                    className="status-btn btn-pagamento"
+                    onClick={() => handleOpenPaymentModal(selectedSale)}
+                  >
+                    <DollarSign size={14} />
+                    REGISTRAR PAGAMENTO
+                  </button>
+                )}
+
                 <button
                   className="status-btn btn-nota-fiscal"
                   onClick={() => setNfModalOpen(true)}
@@ -1014,6 +1135,23 @@ export default function Vendas({ onBack }: VendasProps) {
                   </select>
                 </div>
               </div>
+
+              {/* Optional Partial Payment Field on Creation/Edit */}
+              {(formStatus === 'pendente' || formStatus === 'pedido') && (
+                <div className="form-row" style={{ marginTop: '10px' }}>
+                  <div className="half-input-container">
+                    <label className="input-label">VALOR JÁ PAGO (R$)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      className="input"
+                      placeholder="Ex: 1500.00 (deixe em branco se R$ 0)"
+                      value={formValorPago}
+                      onChange={(e) => setFormValorPago(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
 
               {formPaymentMethod === "Cheque" && (
                 <div className="form-row" style={{ marginTop: '10px' }}>
@@ -1469,13 +1607,23 @@ export default function Vendas({ onBack }: VendasProps) {
               {/* Totals Summary */}
               <div className="nf-totals-box">
                 <div className="nf-totals-row">
-                  <span>Subtotal Produtos:</span>
+                  <span>Valor Total da Venda:</span>
                   <span>{formatPrice(selectedSale.valor_total)}</span>
                 </div>
-                <div className="nf-totals-row">
-                  <span>Descontos / Taxas:</span>
-                  <span>R$ 0,00</span>
-                </div>
+                {selectedSale.valor_pago !== undefined && selectedSale.valor_pago !== null && (
+                  <>
+                    <div className="nf-totals-row">
+                      <span>Valor Já Pago:</span>
+                      <span style={{ color: '#166534', fontWeight: 'bold' }}>{formatPrice(selectedSale.valor_pago)}</span>
+                    </div>
+                    <div className="nf-totals-row">
+                      <span>Saldo Devedor / Restante:</span>
+                      <span style={{ color: '#b45309', fontWeight: 'bold' }}>
+                        {formatPrice(Math.max(0, Number(selectedSale.valor_total) - Number(selectedSale.valor_pago)))}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="nf-totals-row final-total">
                   <span>VALOR TOTAL DA NOTA:</span>
                   <span>{formatPrice(selectedSale.valor_total)}</span>
@@ -1503,6 +1651,91 @@ export default function Vendas({ onBack }: VendasProps) {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Register / Abater Partial Payment Modal */}
+      {paymentModalOpen && paymentSale && (
+        <div className="modal-overlay" style={{ zIndex: 110 }}>
+          <form className="modal-content" onSubmit={handleSavePayment} style={{ maxWidth: '420px' }}>
+            <h3 className="modal-title">Abater / Registrar Pagamento</h3>
+            
+            <div className="payment-summary-card">
+              <div className="payment-summary-row">
+                <span>Cliente:</span>
+                <strong>{paymentSale.nome_cliente}</strong>
+              </div>
+              <div className="payment-summary-row total-row">
+                <span>Valor Total da Venda:</span>
+                <span>{formatPrice(paymentSale.valor_total)}</span>
+              </div>
+              <div className="payment-summary-row">
+                <span>Valor Já Pago:</span>
+                <span style={{ color: '#166534', fontWeight: 600 }}>
+                  {formatPrice(paymentSale.valor_pago || 0)}
+                </span>
+              </div>
+              <div className="payment-summary-row remaining-row">
+                <span>Saldo Devedor Restante:</span>
+                <span>
+                  {formatPrice(Math.max(0, Number(paymentSale.valor_total) - Number(paymentSale.valor_pago || 0)))}
+                </span>
+              </div>
+            </div>
+
+            <div className="form-scroll" style={{ maxHeight: 'auto' }}>
+              <label className="input-label">VALOR TOTAL ACUMULADO PAGO PELO CLIENTE (R$) *</label>
+              <input
+                type="number"
+                step="any"
+                className="input"
+                placeholder="Ex: 1500.00"
+                value={paymentNewValor}
+                onChange={(e) => setPaymentNewValor(e.target.value)}
+                required
+                autoFocus
+              />
+
+              <div className="toggle-row" style={{ marginTop: '12px' }}>
+                <span className="toggle-label" style={{ fontSize: '11px' }}>
+                  Marcar venda como CONCLUÍDA se o valor pago for igual ao total
+                </span>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={paymentAutoConclude}
+                    onChange={(e) => setPaymentAutoConclude(e.target.checked)}
+                  />
+                  <span className="slider round"></span>
+                </label>
+              </div>
+
+              {paymentError && <p className="form-error-text" style={{ marginTop: '10px' }}>{paymentError}</p>}
+            </div>
+
+            <div className="button-row" style={{ marginTop: '20px' }}>
+              <button
+                type="button"
+                className="cancel-button"
+                onClick={() => {
+                  setPaymentModalOpen(false);
+                  setPaymentSale(null);
+                }}
+                disabled={paymentSubmitting}
+              >
+                CANCELAR
+              </button>
+
+              <button
+                type="submit"
+                className="submit-button"
+                style={{ backgroundColor: '#10b981' }}
+                disabled={paymentSubmitting}
+              >
+                {paymentSubmitting ? "SALVANDO..." : "REGISTRAR PAGAMENTO"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
