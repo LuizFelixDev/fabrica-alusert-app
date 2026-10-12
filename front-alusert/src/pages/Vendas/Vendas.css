@@ -273,10 +273,101 @@
   color: var(--primary);
 }
 
-/* Action Buttons Footer */
+/* Action Buttons Footer with Horizontal Scroll */
+.details-footer.sale-details-footer {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding-top: 14px;
+  padding-bottom: 8px;
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  scroll-behavior: smooth;
+}
+
+/* Custom sleek scrollbar for desktop */
+.details-footer.sale-details-footer::-webkit-scrollbar {
+  height: 6px;
+}
+
+.details-footer.sale-details-footer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.details-footer.sale-details-footer::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+.details-footer.sale-details-footer::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7);
+}
+
+.dark-mode .details-footer.sale-details-footer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark-mode .details-footer.sale-details-footer::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.details-footer.sale-details-footer button,
+.details-footer.sale-details-footer .details-delete-button,
+.details-footer.sale-details-footer .status-btn {
+  flex: 0 0 auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  height: 42px !important;
+  padding: 0 16px !important;
+  border-radius: 12px !important;
+  font-family: 'Montserrat', sans-serif !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  border: none;
+  transition: all 0.15s ease !important;
+}
+
+.details-footer.sale-details-footer button:hover {
+  filter: brightness(0.95);
+  transform: translateY(-1px);
+}
+
+.details-footer.sale-details-footer button:active {
+  transform: translateY(0);
+}
+
+.details-footer.sale-details-footer .details-delete-button {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.details-footer.sale-details-footer .details-delete-button:hover {
+  background-color: #fecaca;
+}
+
 .action-buttons-group {
   display: flex;
   gap: 8px;
+}
+
+.details-footer.sale-details-footer .action-buttons-group {
+  display: contents !important;
 }
 
 .status-btn {
@@ -290,6 +381,7 @@
 .btn-cancelar {
   background-color: #fee2e2;
   color: #b91c1c;
+  border: 1px solid #fca5a5;
 }
 
 .btn-alterar {
