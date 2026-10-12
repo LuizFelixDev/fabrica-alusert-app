@@ -35,6 +35,7 @@ interface Sale {
   id: number;
   id_cliente: number;
   id_usuario: number;
+  vendedor?: string;
   data_venda: string;
   forma_pagamento: string;
   status: 'pedido' | 'pendente' | 'concluída' | 'cancelada';
@@ -103,6 +104,7 @@ export default function Vendas({ onBack }: VendasProps) {
   const [editingSaleId, setEditingSaleId] = useState<number | null>(null);
   const [formClientId, setFormClientId] = useState<string>("");
   const [formSellerId, setFormSellerId] = useState<string>("");
+  const [formVendedor, setFormVendedor] = useState<string>("");
   const [formPaymentMethod, setFormPaymentMethod] = useState<string>("Pix");
   const [formStatus, setFormStatus] = useState<'pedido' | 'pendente' | 'concluída' | 'cancelada'>("concluída");
   const [formChequeDueDate, setFormChequeDueDate] = useState<string>("");
@@ -356,6 +358,7 @@ export default function Vendas({ onBack }: VendasProps) {
 
     setFormClientId(String(sale.id_cliente));
     setFormSellerId(String(sale.id_usuario));
+    setFormVendedor(sale.vendedor || "");
     setFormPaymentMethod(sale.forma_pagamento);
     setFormStatus(sale.status);
     setFormChequeDueDate(sale.data_vencimento_cheque ? sale.data_vencimento_cheque.substring(0, 10) : "");
@@ -479,6 +482,7 @@ export default function Vendas({ onBack }: VendasProps) {
       const payload = {
         id_cliente: parseInt(formClientId),
         id_usuario: parseInt(formSellerId),
+        vendedor: formVendedor.trim() || undefined,
         forma_pagamento: formPaymentMethod,
         status: formStatus,
         data_vencimento_cheque: formPaymentMethod === "Cheque" ? formChequeDueDate : undefined,
@@ -508,7 +512,8 @@ export default function Vendas({ onBack }: VendasProps) {
 
       // Reset form
       setFormClientId("");
-      setFormSellerId("");
+      setFormSellerId(sellers.length > 0 ? String(sellers[0].id) : "");
+      setFormVendedor("");
       setFormPaymentMethod("Pix");
       setFormStatus("concluída");
       setFormChequeDueDate("");
@@ -671,7 +676,7 @@ export default function Vendas({ onBack }: VendasProps) {
               <p><strong>Data da Venda:</strong> ${formatDate(sale.data_venda)}</p>
               <p><strong>Forma de Pagamento:</strong> ${sale.forma_pagamento}</p>
               ${sale.forma_pagamento === "Cheque" && sale.data_vencimento_cheque ? `<p><strong>Vencimento Cheque:</strong> ${formatDateOnly(sale.data_vencimento_cheque)}</p>` : ''}
-              <p><strong>Vendedor / Operador:</strong> ${sale.nome_usuario}</p>
+              <p><strong>Vendedor:</strong> ${sale.vendedor || sale.nome_usuario || "Não informado"}</p>
             </td>
           </tr>
         </table>
@@ -760,6 +765,7 @@ export default function Vendas({ onBack }: VendasProps) {
           setFormError(null);
           setFormClientId("");
           setFormSellerId(sellers.length > 0 ? String(sellers[0].id) : "");
+          setFormVendedor("");
           setFormPaymentMethod("Pix");
           setFormStatus("concluída");
           setFormChequeDueDate("");
@@ -843,7 +849,7 @@ export default function Vendas({ onBack }: VendasProps) {
                   >
                     <div className="sale-details-left">
                       <span className="sale-client-name">{sale.nome_cliente}</span>
-                      <span className="sale-subinfo">Vendedor: {sale.nome_usuario}</span>
+                      <span className="sale-subinfo">Vendedor: {sale.vendedor || sale.nome_usuario || "Não informado"}</span>
                       <div className="sale-meta-row">
                         <span className="sale-date">{formatDate(sale.data_venda).split(" às ")[0]}</span>
                         <span className="sale-payment-method">• {sale.forma_pagamento}</span>
@@ -951,8 +957,8 @@ export default function Vendas({ onBack }: VendasProps) {
                 <div className="info-block">
                   <User size={14} color="#64748b" className="info-icon" />
                   <div>
-                    <span className="info-label">VENDEDOR / REGISTRADO POR</span>
-                    <span className="info-val">{selectedSale.nome_usuario}</span>
+                    <span className="info-label">VENDEDOR</span>
+                    <span className="info-val">{selectedSale.vendedor || selectedSale.nome_usuario || "Não informado"}</span>
                   </div>
                 </div>
               </div>
@@ -1109,7 +1115,17 @@ export default function Vendas({ onBack }: VendasProps) {
                 ))}
               </select>
 
-              {/* Vendedor / Operador auto-defaulted to the first seller (Administrador) */}
+              {/* Campo Vendedor */}
+              <div style={{ marginTop: '10px' }}>
+                <label className="input-label">VENDEDOR</label>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Nome do vendedor..."
+                  value={formVendedor}
+                  onChange={(e) => setFormVendedor(e.target.value)}
+                />
+              </div>
 
               <div className="form-row">
                 <div className="half-input-container">
@@ -1577,7 +1593,7 @@ export default function Vendas({ onBack }: VendasProps) {
                   {selectedSale.forma_pagamento === "Cheque" && selectedSale.data_vencimento_cheque && (
                     <p><strong>Vencimento Cheque:</strong> {formatDateOnly(selectedSale.data_vencimento_cheque)}</p>
                   )}
-                  <p><strong>Vendedor / Operador:</strong> {selectedSale.nome_usuario}</p>
+                  <p><strong>Vendedor:</strong> {selectedSale.vendedor || selectedSale.nome_usuario || "Não informado"}</p>
                 </div>
               </div>
 
