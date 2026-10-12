@@ -1002,12 +1002,19 @@ export default function Vendas({ onBack }: VendasProps) {
             </div>
 
             {/* Actions Footer */}
-            <div className="details-footer">
+            <div
+              className="details-footer sale-details-footer"
+              onWheel={(e) => {
+                if (e.deltaY !== 0) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+            >
               <button
                 className="details-delete-button"
                 onClick={() => handleDeleteSale(selectedSale.id)}
               >
-                <Trash2 size={16} style={{ marginRight: '6px' }} />
+                <Trash2 size={16} />
                 EXCLUIR
               </button>
 
