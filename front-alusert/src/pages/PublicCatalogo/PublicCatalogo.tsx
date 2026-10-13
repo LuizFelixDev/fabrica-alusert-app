@@ -56,6 +56,20 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
   // Added animation state map
   const [addedAnimation, setAddedAnimation] = useState<Record<number, boolean>>({});
 
+  // Expanded product view
+  const [expandedProduto, setExpandedProduto] = useState<PublicCatalogoProduto | null>(null);
+
+  useEffect(() => {
+    if (!expandedProduto) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setExpandedProduto(null); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [expandedProduto]);
+
   // Fetch catalog on mount
   useEffect(() => {
     const fetchCatalog = async () => {
@@ -291,7 +305,12 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
             const imgSrc = getProductImageSrc(produto.imagem);
 
             return (
-              <div key={produto.id_produto} className="public-product-card">
+              <div
+                key={produto.id_produto}
+                className="public-product-card clickable"
+                onClick={() => setExpandedProduto(produto)}
+                title="Clique para ampliar"
+              >
                 <div className="product-card-image-box">
                   {imgSrc ? (
                     <img 
@@ -353,7 +372,7 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
                   </div>
                 </div>
 
-                <div className="product-card-actions">
+                <div className="product-card-actions" onClick={(e) => e.stopPropagation()}>
                   <div className="qty-control-box">
                     <button 
                       type="button"
@@ -579,6 +598,68 @@ export default function PublicCatalogo({ tokenLink }: PublicCatalogoProps) {
           </div>
         </div>
       )}
+
+      {/* Expanded Product Modal */}
+      {expandedProduto && (() => {
+        const p = expandedProduto;
+        const src = getProductImageSrc(p.imagem);
+        const disc = getDiscountPercent(p.preco, p.preco_padrao);
+        const qty = cart[p.id_produto]?.quantidade || 0;
+        const added = addedAnimation[p.id_produto];
+        return (
+          <div className="modal-overlay product-zoom-overlay" onClick={() => setExpandedProduto(null)}>
+            <div className="product-zoom-content" onClick={(e) => e.stopPropagation()}>
+              <button className="close-modal-btn product-zoom-close" onClick={() => setExpandedProduto(null)} aria-label="Fechar">
+                <X size={22} />
+              </button>
+              <div className="product-zoom-image-box">
+                {src ? (
+                  <img src={src} alt={p.nome} className="product-zoom-image" />
+                ) : (
+                  <ImageIcon size={72} color="#cbd5e1" />
+                )}
+              </div>
+              <div className="product-zoom-info">
+                <div className="product-card-badges">
+                  <span className="product-category-tag">{p.categoria || "Produto"}</span>
+                  {disc && <span className="discount-badge">-{disc}% OFF</span>}
+                </div>
+                <h2 className="product-zoom-name">{p.nome}</h2>
+                <div className="product-card-meta">
+                  {p.unidade_medida && <span>Unidade: <strong>{p.unidade_medida}</strong></span>}
+                  {p.codigo_barras && <span>Cód: {p.codigo_barras}</span>}
+                </div>
+                <div className="product-pricing">
+                  {disc && <div className="price-original-struck">De {formatCurrency(p.preco_padrao)}</div>}
+                  <div className="price-main">
+                    {formatCurrency(p.preco)}
+                    {p.unidade_medida && <span className="price-unit">/{p.unidade_medida}</span>}
+                  </div>
+                </div>
+                <div className="product-card-actions">
+                  <div className="qty-control-box">
+                    <button type="button" className="qty-btn" onClick={() => handleUpdateQuantity(p, -1)} disabled={qty === 0}>
+                      <Minus size={14} />
+                    </button>
+                    <input
+                      type="number" min="0" step="any" className="qty-input"
+                      value={qty === 0 ? "" : qty} placeholder="0"
+                      onChange={(e) => { const v = parseFloat(e.target.value); handleSetQuantity(p, isNaN(v) ? 0 : v); }}
+                      onFocus={(e) => e.target.select()}
+                    />
+                    <button type="button" className="qty-btn" onClick={() => handleUpdateQuantity(p, 1)}>
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                  <button className={`btn-add-cart ${added ? "added" : ""}`} onClick={() => handleAddToCart(p)}>
+                    {added ? (<><CheckCircle2 size={16} /><span>Adicionado</span></>) : (<><ShoppingBag size={16} /><span>{qty > 0 ? "Adicionar +" : "Adicionar"}</span></>)}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Success Confirmation Modal */}
       {orderSuccess && (
