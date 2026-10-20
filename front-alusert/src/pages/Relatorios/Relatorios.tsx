@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import "./Relatorios.css";
 import { ENDPOINTS } from "../../constants/api";
+import ChequesDashboard from "./ChequesDashboard";
 
 interface RelatoriosProps {
   onBack?: () => void;
@@ -752,6 +753,9 @@ export default function Relatorios({ onBack }: RelatoriosProps) {
               </div>
             )}
           </div>
+
+          {/* SECTION 3: CHEQUES A RECEBER / CHEQUES A PAGAR */}
+          <ChequesDashboard sales={sales} formatMoney={formatMoney} />
         </div>
       )}
 
