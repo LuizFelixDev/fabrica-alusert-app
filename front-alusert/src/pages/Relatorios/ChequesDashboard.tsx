@@ -12,122 +12,60 @@ import {
   Wallet
 } from "lucide-react";
 import "./ChequesDashboard.css";
+import {
+  STORAGE_PAGAR,
+  STORAGE_RECEBIDOS,
+  buildChequesReceber,
+  criarChequePagar,
+  daysUntil,
+  filtrarPorStatus,
+  formatDateBR,
+  getDueInfo,
+  loadChequesPagar,
+  loadRecebidos,
+  resumoVencimentos,
+  safeSave,
+  somarValores,
+  todayYMD,
+  validarChequePagar,
+  type ChequePagar,
+  type FiltroStatus
+} from "../../utils/cheques";
 
-export interface ChequePagar {
-  id: string;
-  favorecido: string;
-  numero: string;
-  banco: string;
-  valor: number;
-  data_pagamento: string; // YYYY-MM-DD
-  observacao?: string;
-  pago: boolean;
-}
+export type { ChequePagar } from "../../utils/cheques";
 
 interface ChequesDashboardProps {
   sales: any[];
   formatMoney: (val: number) => string;
 }
 
-type FiltroStatus = "pendentes" | "quitados" | "todos";
-
-const STORAGE_PAGAR = "alusert_cheques_pagar";
-const STORAGE_RECEBIDOS = "alusert_cheques_recebidos";
-
-// Normaliza qualquer data (ISO, Date string) para YYYY-MM-DD
-const toYMD = (val: any): string | null => {
-  if (!val) return null;
-  const str = String(val);
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.substring(0, 10);
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return null;
-  return d.toISOString().substring(0, 10);
-};
-
-// Diferença em dias entre a data informada e hoje (negativo = vencido)
-const daysUntil = (ymd: string | null): number | null => {
-  if (!ymd) return null;
-  const [y, m, d] = ymd.split("-").map(Number);
-  const target = new Date(y, m - 1, d);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.round((target.getTime() - today.getTime()) / 86400000);
-};
-
-const formatDateBR = (ymd: string | null) => {
-  if (!ymd) return "Sem data";
-  const [y, m, d] = ymd.split("-");
-  return `${d}/${m}/${y}`;
-};
-
-const getDueInfo = (ymd: string | null, quitado: boolean, quitadoLabel: string) => {
-  if (quitado) return { cls: "ok", label: quitadoLabel };
-  const diff = daysUntil(ymd);
-  if (diff === null) return { cls: "neutral", label: "SEM DATA" };
-  if (diff < 0) return { cls: "late", label: `VENCIDO HÁ ${Math.abs(diff)} ${Math.abs(diff) === 1 ? "DIA" : "DIAS"}` };
-  if (diff === 0) return { cls: "today", label: "VENCE HOJE" };
-  if (diff <= 7) return { cls: "soon", label: `VENCE EM ${diff} ${diff === 1 ? "DIA" : "DIAS"}` };
-  return { cls: "future", label: `EM ${diff} DIAS` };
-};
-
 export default function ChequesDashboard({ sales, formatMoney }: ChequesDashboardProps) {
   // ===== CHEQUES A RECEBER (derivados das vendas) =====
-  const [recebidos, setRecebidos] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_RECEBIDOS);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [recebidos, setRecebidos] = useState<number[]>(() => loadRecebidos());
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_RECEBIDOS, JSON.stringify(recebidos));
+    safeSave(STORAGE_RECEBIDOS, recebidos);
   }, [recebidos]);
 
   const [filtroReceber, setFiltroReceber] = useState<FiltroStatus>("pendentes");
 
-  const chequesReceber = sales
-    .filter((s) => s.forma_pagamento === "Cheque" && s.status !== "cancelada")
-    .map((s) => {
-      const vencimento = toYMD(s.data_vencimento_cheque);
-      return {
-        id: s.id as number,
-        cliente: s.nome_cliente || "Cliente",
-        valor: Number(s.valor_total || 0),
-        data_venda: toYMD(s.data_venda),
-        vencimento,
-        compensado: recebidos.includes(s.id),
-        diff: daysUntil(vencimento)
-      };
-    })
-    .sort((a, b) => (a.vencimento || "9999").localeCompare(b.vencimento || "9999"));
+  const chequesReceber = buildChequesReceber(sales, recebidos);
 
   const receberPendentes = chequesReceber.filter((c) => !c.compensado);
-  const totalReceber = receberPendentes.reduce((acc, c) => acc + c.valor, 0);
-  const receberVencidos = receberPendentes.filter((c) => c.diff !== null && c.diff < 0);
-  const receberProximos = receberPendentes.filter((c) => c.diff !== null && c.diff >= 0 && c.diff <= 7);
+  const totalReceber = somarValores(receberPendentes);
+  const { vencidos: receberVencidos, proximos: receberProximos } = resumoVencimentos(receberPendentes, (c) => c.diff);
 
-  const listaReceber = chequesReceber.filter((c) =>
-    filtroReceber === "todos" ? true : filtroReceber === "pendentes" ? !c.compensado : c.compensado
-  );
+  const listaReceber = filtrarPorStatus(chequesReceber, filtroReceber, (c) => c.compensado);
 
   const toggleRecebido = (id: number) => {
     setRecebidos((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
   // ===== CHEQUES A PAGAR (cadastro manual) =====
-  const [chequesPagar, setChequesPagar] = useState<ChequePagar[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_PAGAR);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [chequesPagar, setChequesPagar] = useState<ChequePagar[]>(() => loadChequesPagar());
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_PAGAR, JSON.stringify(chequesPagar));
+    safeSave(STORAGE_PAGAR, chequesPagar);
   }, [chequesPagar]);
 
   const [filtroPagar, setFiltroPagar] = useState<FiltroStatus>("pendentes");
@@ -136,21 +74,18 @@ export default function ChequesDashboard({ sales, formatMoney }: ChequesDashboar
   const [fNumero, setFNumero] = useState("");
   const [fBanco, setFBanco] = useState("");
   const [fValor, setFValor] = useState("");
-  const [fData, setFData] = useState(new Date().toISOString().substring(0, 10));
+  const [fData, setFData] = useState(() => todayYMD());
   const [fObs, setFObs] = useState("");
+  const [formError, setFormError] = useState<string | null>(null);
 
   const pagarOrdenados = [...chequesPagar].sort((a, b) => a.data_pagamento.localeCompare(b.data_pagamento));
   const pagarPendentes = pagarOrdenados.filter((c) => !c.pago);
-  const totalPagar = pagarPendentes.reduce((acc, c) => acc + c.valor, 0);
-  const pagarVencidos = pagarPendentes.filter((c) => (daysUntil(c.data_pagamento) ?? 0) < 0);
-  const pagarProximos = pagarPendentes.filter((c) => {
-    const d = daysUntil(c.data_pagamento);
-    return d !== null && d >= 0 && d <= 7;
-  });
-
-  const listaPagar = pagarOrdenados.filter((c) =>
-    filtroPagar === "todos" ? true : filtroPagar === "pendentes" ? !c.pago : c.pago
+  const totalPagar = somarValores(pagarPendentes);
+  const { vencidos: pagarVencidos, proximos: pagarProximos } = resumoVencimentos(pagarPendentes, (c) =>
+    daysUntil(c.data_pagamento)
   );
+
+  const listaPagar = filtrarPorStatus(pagarOrdenados, filtroPagar, (c) => c.pago);
 
   const resetForm = () => {
     setFFavorecido("");
@@ -158,27 +93,26 @@ export default function ChequesDashboard({ sales, formatMoney }: ChequesDashboar
     setFBanco("");
     setFValor("");
     setFObs("");
-    setFData(new Date().toISOString().substring(0, 10));
+    setFData(todayYMD());
+    setFormError(null);
+  };
+
+  const closeModal = () => {
+    resetForm();
+    setModalOpen(false);
   };
 
   const handleAddChequePagar = (e: React.FormEvent) => {
     e.preventDefault();
-    const valorNum = parseFloat(fValor);
-    if (!fFavorecido.trim() || isNaN(valorNum) || valorNum <= 0 || !fData) return;
+    const input = { favorecido: fFavorecido, numero: fNumero, banco: fBanco, valor: fValor, data: fData, observacao: fObs };
+    const erro = validarChequePagar(input);
+    if (erro) {
+      setFormError(erro);
+      return;
+    }
 
-    const novo: ChequePagar = {
-      id: `chq-${Date.now()}`,
-      favorecido: fFavorecido.trim(),
-      numero: fNumero.trim(),
-      banco: fBanco.trim(),
-      valor: valorNum,
-      data_pagamento: fData,
-      observacao: fObs.trim() || undefined,
-      pago: false
-    };
-    setChequesPagar((prev) => [...prev, novo]);
-    resetForm();
-    setModalOpen(false);
+    setChequesPagar((prev) => [...prev, criarChequePagar(input)]);
+    closeModal();
   };
 
   const togglePago = (id: string) => {
@@ -390,7 +324,7 @@ export default function ChequesDashboard({ sales, formatMoney }: ChequesDashboar
           <div className="modal-card">
             <div className="modal-header">
               <h3 className="modal-title">Cadastrar Cheque a Pagar</h3>
-              <button className="close-btn" onClick={() => setModalOpen(false)}>
+              <button className="close-btn" onClick={closeModal} title="Fechar">
                 <X size={20} />
               </button>
             </div>
@@ -474,10 +408,16 @@ export default function ChequesDashboard({ sales, formatMoney }: ChequesDashboar
                     onChange={(e) => setFObs(e.target.value)}
                   />
                 </div>
+
+                {formError && (
+                  <p className="cheque-form-error" role="alert">
+                    <AlertTriangle size={14} /> {formError}
+                  </p>
+                )}
               </div>
 
               <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>
+                <button type="button" className="btn-secondary" onClick={closeModal}>
                   CANCELAR
                 </button>
                 <button type="submit" className="btn-primary">

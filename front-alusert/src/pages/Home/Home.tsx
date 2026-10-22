@@ -58,11 +58,26 @@ export default function Home({ onNavigate }: HomeProps) {
 
   const handleInstallAppClick = async () => {
     if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
-    setDeferredPrompt(null);
-    setShowInstallBtn(false);
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to install prompt: ${outcome}`);
+    } catch (err) {
+      console.error("Falha ao exibir instalação do app:", err);
+    } finally {
+      setDeferredPrompt(null);
+      setShowInstallBtn(false);
+    }
+  };
+
+  // Navegação protegida: um erro ao trocar de tela não derruba o menu
+  const safeNavigate = (page: string) => {
+    if (!onNavigate) return;
+    try {
+      onNavigate(page);
+    } catch (err) {
+      console.error(`Erro ao navegar para ${page}:`, err);
+    }
   };
 
   const getFormattedDate = () => {
@@ -97,30 +112,35 @@ export default function Home({ onNavigate }: HomeProps) {
   };
 
   // Fetch Dashboard data
+  // Usa allSettled: se apenas um endpoint falhar, o restante do painel continua funcionando.
   const fetchDashboardData = async () => {
+    const loadList = async (url: string): Promise<any[]> => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Erro ${res.status} em ${url}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    };
+
     try {
       setLoading(true);
       setError(null);
 
-      const [salesRes, rawRes, clientsRes] = await Promise.all([
-        fetch(ENDPOINTS.vendas),
-        fetch(ENDPOINTS.materiasPrimas),
-        fetch(ENDPOINTS.clientes)
+      const [salesR, rawR, clientsR] = await Promise.allSettled([
+        loadList(ENDPOINTS.vendas),
+        loadList(ENDPOINTS.materiasPrimas),
+        loadList(ENDPOINTS.clientes)
       ]);
 
-      if (!salesRes.ok || !rawRes.ok || !clientsRes.ok) {
+      const results = [salesR, rawR, clientsR];
+      results.forEach((r) => r.status === "rejected" && console.error(r.reason));
+
+      if (results.every((r) => r.status === "rejected")) {
         throw new Error("Erro ao buscar dados do servidor");
       }
 
-      const [salesData, rawData, clientsData] = await Promise.all([
-        salesRes.json(),
-        rawRes.json(),
-        clientsRes.json()
-      ]);
-
-      setSales(salesData);
-      setRawMaterials(rawData);
-      setClients(clientsData);
+      setSales(salesR.status === "fulfilled" ? salesR.value : []);
+      setRawMaterials(rawR.status === "fulfilled" ? rawR.value : []);
+      setClients(clientsR.status === "fulfilled" ? clientsR.value : []);
     } catch (err: any) {
       console.error(err);
       setError("Não foi possível conectar ao servidor.");
@@ -133,43 +153,49 @@ export default function Home({ onNavigate }: HomeProps) {
     fetchDashboardData();
   }, []);
 
-  // Quick access config
+  // Quick access config (page = destino explícito no menu)
   const quickAccessItems = [
     {
       id: "1",
       title: "MATÉRIA\nPRIMA",
       icon: Hexagon,
       colorKey: "materiaPrima",
+      page: "MateriasPrimas",
     },
     {
       id: "2",
       title: "PRODUTOS",
       icon: FileText,
       colorKey: "produtos",
+      page: "Produtos",
     },
     {
       id: "3",
       title: "VENDAS",
       icon: Star,
       colorKey: "vendas",
+      page: "Vendas",
     },
     {
       id: "4",
       title: "CLIENTES",
       icon: User,
       colorKey: "clientes",
+      page: "Clientes",
     },
     {
       id: "5",
       title: "RELATÓRIOS",
       icon: FileText,
       colorKey: "relatorios",
+      page: "Relatorios",
     },
     {
       id: "6",
       title: "ACESSOS",
       icon: UserPlus,
       colorKey: "acessos",
+      page: "Usuarios",
     },
   ];
 
@@ -181,16 +207,14 @@ export default function Home({ onNavigate }: HomeProps) {
   };
 
   const formatDate = (isoString: string) => {
-    try {
-      const d = new Date(isoString);
-      return d.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-      });
-    } catch {
-      return isoString;
-    }
+    if (!isoString) return "-";
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return String(isoString);
+    return d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
   };
 
   // Calculations for Indicators
@@ -245,7 +269,11 @@ export default function Home({ onNavigate }: HomeProps) {
     .slice(0, 3);
 
   // 5. Low stock alerts
-  const lowStockMaterials = rawMaterials.filter(m => parseFloat(m.quantidade_estoque) < parseFloat(m.estoque_minimo));
+  const lowStockMaterials = rawMaterials.filter(m => {
+    const qtd = parseFloat(m?.quantidade_estoque);
+    const min = parseFloat(m?.estoque_minimo);
+    return Number.isFinite(qtd) && Number.isFinite(min) && qtd < min;
+  });
 
   return (
     <div className="home-container page-content">
@@ -369,22 +397,9 @@ export default function Home({ onNavigate }: HomeProps) {
             return (
               <button 
                 key={item.id} 
+                id={`menu-${item.page}`}
                 className={`quick-access-item ${item.colorKey}`}
-                onClick={() => {
-                  if (item.title.includes("MATÉRIA") && onNavigate) {
-                    onNavigate("MateriasPrimas");
-                  } else if (item.title.includes("PRODUTOS") && onNavigate) {
-                    onNavigate("Produtos");
-                  } else if (item.title.includes("VENDAS") && onNavigate) {
-                    onNavigate("Vendas");
-                  } else if (item.title.includes("CLIENTES") && onNavigate) {
-                    onNavigate("Clientes");
-                  } else if (item.title.includes("RELATÓRIOS") && onNavigate) {
-                    onNavigate("Relatorios");
-                  } else if (item.title.includes("ACESSOS") && onNavigate) {
-                    onNavigate("Usuarios");
-                  }
-                }}
+                onClick={() => safeNavigate(item.page)}
               >
                 <div
                   className="quick-access-icon-container"
@@ -404,7 +419,7 @@ export default function Home({ onNavigate }: HomeProps) {
         <>
           <div className="section-header-container-with-link">
             <h3 className="section-title">ÚLTIMAS VENDAS</h3>
-            <button className="section-header-link" onClick={() => onNavigate && onNavigate("Vendas")}>VER TODAS →</button>
+            <button className="section-header-link" onClick={() => safeNavigate("Vendas")}>VER TODAS →</button>
           </div>
 
           <div className="sales-card">
@@ -496,10 +511,11 @@ export default function Home({ onNavigate }: HomeProps) {
         </button>
 
         <button
+          id="tab-vendas"
           className="tab-item"
           onClick={() => {
             setActiveTab("vendas");
-            if (onNavigate) onNavigate("Vendas");
+            safeNavigate("Vendas");
           }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'vendas' ? 'tab-icon-wrapper-active' : ''}`}>
@@ -511,10 +527,11 @@ export default function Home({ onNavigate }: HomeProps) {
         </button>
 
         <button
+          id="tab-clientes"
           className="tab-item"
           onClick={() => {
             setActiveTab("clientes");
-            if (onNavigate) onNavigate("Clientes");
+            safeNavigate("Clientes");
           }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'clientes' ? 'tab-icon-wrapper-active' : ''}`}>
@@ -526,10 +543,11 @@ export default function Home({ onNavigate }: HomeProps) {
         </button>
 
         <button
+          id="tab-relatorios"
           className="tab-item"
           onClick={() => {
             setActiveTab("relatorios");
-            if (onNavigate) onNavigate("Relatorios");
+            safeNavigate("Relatorios");
           }}
         >
           <div className={`tab-icon-wrapper ${activeTab === 'relatorios' ? 'tab-icon-wrapper-active' : ''}`}>

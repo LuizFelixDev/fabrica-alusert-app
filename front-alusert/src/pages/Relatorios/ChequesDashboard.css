@@ -291,3 +291,16 @@
     grid-template-columns: 1fr;
   }
 }
+
+.cheque-form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+}
