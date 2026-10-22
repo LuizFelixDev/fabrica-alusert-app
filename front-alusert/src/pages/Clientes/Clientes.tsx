@@ -44,6 +44,23 @@ interface ClientesProps {
   onBack?: () => void;
 }
 
+// Lê o corpo da resposta sem quebrar quando o servidor devolve HTML, texto ou corpo vazio
+const readJsonSafe = async (res: Response): Promise<any> => {
+  try {
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return null;
+  }
+};
+
+const NETWORK_ERROR_MSG = "Não foi possível conectar ao servidor. Verifique sua conexão.";
+
+const friendlyError = (err: any, fallback: string): string => {
+  if (err instanceof TypeError) return NETWORK_ERROR_MSG; // fetch falha com TypeError quando offline
+  return err?.message || fallback;
+};
+
 export default function Clientes({ onBack }: ClientesProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -90,7 +107,7 @@ export default function Clientes({ onBack }: ClientesProps) {
       setLoading(true);
       setError(null);
       const data = await catalogoApi.getClientes(query);
-      setClients(data);
+      setClients(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error(err);
       setError("Não foi possível carregar a lista de clientes. Verifique sua conexão.");
@@ -159,21 +176,21 @@ export default function Clientes({ onBack }: ClientesProps) {
         body: JSON.stringify(body)
       });
 
-      const resData = await res.json();
+      const resData = await readJsonSafe(res);
 
       if (!res.ok) {
-        throw new Error(resData.error || resData.message || "Erro ao salvar cliente");
+        throw new Error(resData?.error || resData?.message || `Erro ao salvar cliente (${res.status})`);
       }
 
       await fetchClients(debouncedSearchTerm);
       setFormModalVisible(false);
       
       if (isEditing) {
-        setSelectedClient(resData);
+        setSelectedClient(resData && typeof resData === "object" ? resData : selectedClient);
       }
     } catch (err: any) {
       console.error(err);
-      setFormError(err.message || "Ocorreu um erro ao salvar os dados.");
+      setFormError(friendlyError(err, "Ocorreu um erro ao salvar os dados."));
     } finally {
       setSubmitting(false);
     }
@@ -192,8 +209,8 @@ export default function Clientes({ onBack }: ClientesProps) {
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Erro ao deletar cliente");
+        const data = await readJsonSafe(res);
+        throw new Error(data?.error || data?.message || `Erro ao deletar cliente (${res.status})`);
       }
 
       setDetailsModalVisible(false);
@@ -201,7 +218,7 @@ export default function Clientes({ onBack }: ClientesProps) {
       await fetchClients(debouncedSearchTerm);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Erro ao excluir cliente.");
+      alert(friendlyError(err, "Erro ao excluir cliente."));
     } finally {
       setLoading(false);
     }
@@ -244,6 +261,7 @@ export default function Clientes({ onBack }: ClientesProps) {
     if (!isoString) return "-";
     try {
       const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
       return d.toLocaleDateString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
@@ -295,8 +313,10 @@ export default function Clientes({ onBack }: ClientesProps) {
         <div className="search-input-wrapper">
           <Search size={16} className="search-bar-icon" />
           <input
+            id="clientes-busca"
             type="text"
             className="search-input"
+            aria-label="Buscar cliente"
             placeholder="Buscar por nome do cliente (busca automática com debounce)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -514,8 +534,9 @@ export default function Clientes({ onBack }: ClientesProps) {
             </h3>
 
             <div className="form-scroll">
-              <label className="input-label">NOME COMPLETO *</label>
+              <label className="input-label" htmlFor="cliente-nome">NOME COMPLETO *</label>
               <input
+                id="cliente-nome"
                 type="text"
                 className="input"
                 placeholder="Ex: Alusert Serralheria"
@@ -524,8 +545,9 @@ export default function Clientes({ onBack }: ClientesProps) {
                 required
               />
 
-              <label className="input-label">CPF / CNPJ *</label>
+              <label className="input-label" htmlFor="cliente-cpf-cnpj">CPF / CNPJ *</label>
               <input
+                id="cliente-cpf-cnpj"
                 type="text"
                 className="input"
                 placeholder="Ex: 123.456.789-00 ou 12.345.678/0001-99"
@@ -536,8 +558,9 @@ export default function Clientes({ onBack }: ClientesProps) {
 
               <div className="form-row">
                 <div className="half-input-container">
-                  <label className="input-label">TELEFONE</label>
+                  <label className="input-label" htmlFor="cliente-telefone">TELEFONE</label>
                   <input
+                    id="cliente-telefone"
                     type="text"
                     className="input"
                     placeholder="Ex: (81) 98888-8888"
@@ -546,8 +569,9 @@ export default function Clientes({ onBack }: ClientesProps) {
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">E-MAIL</label>
+                  <label className="input-label" htmlFor="cliente-email">E-MAIL</label>
                   <input
+                    id="cliente-email"
                     type="email"
                     className="input"
                     placeholder="cliente@email.com"
@@ -559,8 +583,9 @@ export default function Clientes({ onBack }: ClientesProps) {
 
               <div className="form-row" style={{ marginTop: "8px" }}>
                 <div className="half-input-container">
-                  <label className="input-label">RUA / LOGRADOURO</label>
+                  <label className="input-label" htmlFor="cliente-rua">RUA / LOGRADOURO</label>
                   <input
+                    id="cliente-rua"
                     type="text"
                     className="input"
                     placeholder="Ex: Av. Principal, 100"
@@ -569,8 +594,9 @@ export default function Clientes({ onBack }: ClientesProps) {
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">BAIRRO</label>
+                  <label className="input-label" htmlFor="cliente-bairro">BAIRRO</label>
                   <input
+                    id="cliente-bairro"
                     type="text"
                     className="input"
                     placeholder="Ex: Centro"
@@ -582,8 +608,9 @@ export default function Clientes({ onBack }: ClientesProps) {
 
               <div className="form-row" style={{ marginTop: "8px" }}>
                 <div className="half-input-container">
-                  <label className="input-label">CIDADE</label>
+                  <label className="input-label" htmlFor="cliente-cidade">CIDADE</label>
                   <input
+                    id="cliente-cidade"
                     type="text"
                     className="input"
                     placeholder="Ex: Caruaru"
@@ -592,8 +619,9 @@ export default function Clientes({ onBack }: ClientesProps) {
                   />
                 </div>
                 <div className="half-input-container">
-                  <label className="input-label">ESTADO (UF)</label>
+                  <label className="input-label" htmlFor="cliente-estado">ESTADO (UF)</label>
                   <input
+                    id="cliente-estado"
                     type="text"
                     maxLength={2}
                     className="input"
